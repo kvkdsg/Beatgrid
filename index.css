@@ -1,0 +1,313 @@
+@import "tailwindcss";
+
+/* --- FUENTES SELF-HOSTED (PERFORMANCE OPTIMIZATION) --- */
+/* Definimos la fuente localmente. Al tener solo dos archivos,
+   asumimos que cubren tus necesidades principales (Latin). */
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/montserrat-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('/fonts/montserrat-900.woff2') format('woff2');
+}
+
+/* --- AJUSTES GLOBALES (ZERO-LAYOUT SHIFT) --- */
+:root {
+  color-scheme: dark;
+}
+
+/* Estabiliza posibles cambios de gutter de scrollbar */
+html {
+  height: 100%;
+  min-height: 100svh;
+  background-color: #050505;
+  scrollbar-gutter: stable;
+}
+
+@supports (-webkit-touch-callout: none) {
+  html {
+    min-height: -webkit-fill-available;
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #050505;
+  color: #ffffff;
+  /* La pila de fuentes mantiene los fallbacks del sistema para carga inmediata */
+  font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  height: 100%;
+  min-height: 100svh;
+}
+
+@supports (-webkit-touch-callout: none) {
+  body {
+    min-height: -webkit-fill-available;
+  }
+}
+
+#root {
+  height: 100%;
+  min-height: 100svh;
+  background-color: #050505;
+
+  /* --- CORRECCIÓN STATE-OF-THE-ART (NO FUNCIONAL) ---
+     Evita micro-reflow causado por 100vw (incluye scrollbar) cuando el scroll real ocurre
+     en contenedores internos (e.g. overlay con overflow-y-scroll).
+     No altera lógica ni rendering: solo estabiliza geometría del root. */
+  width: 100%;
+  min-width: 0;
+}
+
+/* --- UTILIDAD PROFESIONAL (OPT-IN) ---
+   Aplícala al contenedor que realmente scrollea (p.ej. el div con overflow-y-scroll)
+   para que el gutter sea estable ahí también. */
+.stable-scrollbar {
+  scrollbar-gutter: stable;
+}
+
+/* --- UTILIDADES PERSONALIZADAS --- */
+
+.hard-shadow {
+  box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.hard-shadow-sm {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.hard-shadow-hover {
+  transition: all 150ms ease-in-out;
+}
+
+.hard-shadow-hover:hover {
+  box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 1);
+  transform: translate(4px, 4px);
+}
+
+.layer-transition {
+  transition: opacity 1000ms ease-in-out;
+}
+
+.visible-layer {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.hidden-layer {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* --- ANIMACIONES --- */
+
+@keyframes rec-pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.animate-rec {
+  animation: rec-pulse 2s infinite ease-in-out;
+}
+
+/* Gemini ETA sweep */
+@keyframes gen-sweep {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.gen-sweep-overlay {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  animation: gen-sweep 6s linear forwards;
+  background: rgba(0, 255, 153, 0.85);
+  mix-blend-mode: normal;
+}
+
+.gen-sweep-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.00) 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.00) 100%
+  );
+  opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gen-sweep-overlay {
+    animation: none;
+    transform: none;
+    background: rgba(0, 255, 153, 0.35);
+  }
+  .gen-sweep-overlay::after {
+    display: none;
+  }
+}
+
+/* --- FIN DE JUEGO: ANIMACIONES DE ALTO RENDIMIENTO (STATE OF THE ART) --- */
+
+/*
+   1. The Slam Effect:
+   Física de colisión elástica. Inicia grande y borroso, golpea fuerte (comprimiéndose),
+   rebota ligeramente y se asienta.
+*/
+@keyframes slam-enter {
+  0% {
+    opacity: 0;
+    transform: scale(1.8) translateY(-20px);
+    filter: blur(12px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(0.95); /* El impacto (compresión) */
+    filter: blur(0px);
+  }
+  75% {
+    transform: scale(1.02); /* El rebote elástico */
+  }
+  100% {
+    transform: scale(1); /* Asentamiento final */
+  }
+}
+
+.animate-slam {
+  /* cubic-bezier personalizada para simular masa y gravedad */
+  animation: slam-enter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  /* Optimización GPU: Indica al navegador qué propiedades cambiarán */
+  will-change: transform, opacity, filter;
+  /* Evita parpadeos en renderizado de fuentes durante transformaciones 3D */
+  -webkit-font-smoothing: subpixel-antialiased;
+  backface-visibility: hidden;
+}
+
+/*
+   2. The Flashbang Overlay:
+   Destello blanco inicial que transiciona a oscuro. Limpia la vista y añade energía cinética.
+*/
+@keyframes flash-in {
+  0% {
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(0px);
+  }
+  100% {
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+  }
+}
+
+.animate-flash-overlay {
+  animation: flash-in 0.6s ease-out forwards;
+  will-change: background-color, backdrop-filter;
+}
+
+/*
+   3. Staggered Entrance:
+   Entrada escalonada suave desde abajo para elementos secundarios (botones, video).
+   Evita la fatiga visual de que todo aparezca de golpe.
+*/
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(25px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-delay-1 {
+  animation: slide-up-fade 0.45s cubic-bezier(0.215, 0.61, 0.355, 1) 0.2s forwards;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.animate-delay-2 {
+  animation: slide-up-fade 0.45s cubic-bezier(0.215, 0.61, 0.355, 1) 0.3s forwards;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.animate-delay-3 {
+  animation: slide-up-fade 0.45s cubic-bezier(0.215, 0.61, 0.355, 1) 0.4s forwards;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* --- EMOJI STABILIZATION (ZERO-REFLOW FIX) --- */
+/* Esta clase soluciona el salto vertical (baseline shift) al aislar la fuente y la geometría. */
+
+.emoji-safe {
+  /* 1. Stack de Sistema: Evita esperar a que cargue Montserrat, usando la fuente de emojis nativa inmediatamente. */
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+
+  /* 2. Geometría Bloqueada: Define una caja exacta de 1em x 1em independiente de la fuente. */
+  height: 1em;
+  width: 1em;
+  line-height: 1;
+
+  /* 3. Centrado Absoluto: Usa Flexbox para centrar el glifo ignorando la línea base (ascent/descent) de la fuente. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* 4. Optimización GPU: Asegura que la capa esté lista para transformaciones. */
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* -------------------------------------------------------------------------- */
+/* SSR SHELL VISIBILITY (PRODUCCIÓN, NO FUNCIONAL IMPACT)                      */
+/* -------------------------------------------------------------------------- */
+/*
+  Nota: estas reglas están duplicadas intencionalmente respecto al inline <style> de index.html
+  para robustez (p. ej., si en el futuro se limpia el inline o se mueve el shell a otro layout).
+  Mantienen exactamente la misma semántica:
+  - Visible por defecto.
+  - Solo se oculta tras html.hydrated (cuando React ya montó).
+*/
+
+.ssr-shell { opacity: 1; }
+
+html.js .ssr-shell {
+  transition: opacity 120ms linear;
+}
+
+html.js.hydrated .ssr-shell {
+  opacity: 0;
+  pointer-events: none;
+}
+
+html.js.hydrated .ssr-shell * {
+  pointer-events: none;
+}

@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "prevPresetAria": "Preset trước",
+    "nextPresetAria": "Preset tiếp theo"
+  },
+  "hero": {
+    "title": "NÓI TỪ",
+    "subtitle": "THEO NHỊP"
+  },
+  "wordEditor": {
+    "placeholder": "TỪ {{index}}",
+    "start": "BẮT ĐẦU",
+    "generating": "ĐANG TẠO..."
+  },
+  "recording": {
+    "title": "Ghi lại trò chơi",
+    "onHint": "Video sẽ được lưu khi kết thúc",
+    "offHint": "Chỉ chơi (không video)"
+  },
+  "end": {
+    "title": "Kết thúc!"
+  },
+  "actions": {
+    "share": "Chia sẻ",
+    "download": "Tải xuống",
+    "restart": "Chơi lại",
+    "new": "Mới",
+    "support": "Mời tôi một ly cà phê"
+  },
+  "errors": {
+    "generation": {
+      "title": "Lỗi tạo hình ảnh",
+      "message": "Hãy thử các từ khác",
+      "cta": "OK"
+    },
+    "share": {
+      "failed": "Chia sẻ thất bại. Hãy thử tải video xuống."
+    },
+    "video": {
+      "saveFailed": "Lỗi lưu video.",
+      "recordingPrefix": "Lỗi ghi hình: {{message}}"
+    },
+    "spritesheet": {
+      "loadFailed": "Không thể tải ảnh spritesheet."
+    }
+  },
+  "share": {
+    "title": "Gameplay BeatGrid",
+    "text": "Đánh bại nhịp điệu! https://beat.boton.one"
+  },
+  "intro": {
+    "getReady": "SẴN SÀNG"
+  },
+  "canvas": {
+    "roundLabel": "VÒNG"
+  }
+}

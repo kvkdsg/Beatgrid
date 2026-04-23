@@ -1,0 +1,42 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules/
+dist/
+# Next.js / Vercel (¡IMPORTANTE!)
+.next/
+out/
+build/
+.vercel/
+
+# Dist / Build
+dist
+dist-ssr
+
+# Environment variables
+.env
+.env*.local
+*.local
+.env.local
+
+# Custom ignores
+deploy.mc
+deploy.md
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

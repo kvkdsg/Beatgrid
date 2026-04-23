@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "prevPresetAria": "上一个预设",
+    "nextPresetAria": "下一个预设"
+  },
+  "hero": {
+    "title": "说出单词",
+    "subtitle": "跟上节拍"
+  },
+  "wordEditor": {
+    "placeholder": "单词 {{index}}",
+    "start": "开始游戏",
+    "generating": "生成中..."
+  },
+  "recording": {
+    "title": "录制游戏",
+    "onHint": "视频将在结束时保存",
+    "offHint": "只玩游戏（不录视频）"
+  },
+  "end": {
+    "title": "游戏结束！"
+  },
+  "actions": {
+    "share": "分享",
+    "download": "下载",
+    "restart": "重新开始",
+    "new": "新建",
+    "support": "请我喝杯咖啡"
+  },
+  "errors": {
+    "generation": {
+      "title": "生成图片出错",
+      "message": "请尝试不同的单词",
+      "cta": "确定"
+    },
+    "share": {
+      "failed": "分享失败。请尝试下载视频。"
+    },
+    "video": {
+      "saveFailed": "保存视频失败。",
+      "recordingPrefix": "录制错误：{{message}}"
+    },
+    "spritesheet": {
+      "loadFailed": "无法加载 spritesheet 图片。"
+    }
+  },
+  "share": {
+    "title": "BeatGrid 游戏录像",
+    "text": "战胜节拍！ https://beat.boton.one"
+  },
+  "intro": {
+    "getReady": "准备"
+  },
+  "canvas": {
+    "roundLabel": "回合"
+  }
+}

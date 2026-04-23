@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "prevPresetAria": "Préréglage précédent",
+    "nextPresetAria": "Préréglage suivant"
+  },
+  "hero": {
+    "title": "DIS LE MOT",
+    "subtitle": "EN RYTHME"
+  },
+  "wordEditor": {
+    "placeholder": "MOT {{index}}",
+    "start": "LANCER LE JEU",
+    "generating": "GÉNÉRATION..."
+  },
+  "recording": {
+    "title": "Enregistrer la partie",
+    "onHint": "La vidéo sera sauvegardée à la fin",
+    "offHint": "Jouer sans vidéo"
+  },
+  "end": {
+    "title": "Jeu terminé !"
+  },
+  "actions": {
+    "share": "Partager",
+    "download": "Télécharger",
+    "restart": "Rejouer",
+    "new": "Nouveau",
+    "support": "Offrez-moi un café"
+  },
+  "errors": {
+    "generation": {
+      "title": "Erreur de génération",
+      "message": "Essayez d'autres mots",
+      "cta": "OK"
+    },
+    "share": {
+      "failed": "Échec du partage. Essayez de télécharger la vidéo."
+    },
+    "video": {
+      "saveFailed": "Erreur lors de l'enregistrement vidéo.",
+      "recordingPrefix": "Erreur d'enregistrement : {{message}}"
+    },
+    "spritesheet": {
+      "loadFailed": "Impossible de charger le spritesheet."
+    }
+  },
+  "share": {
+    "title": "Gameplay BeatGrid",
+    "text": "Gardez le rythme ! https://beat.boton.one"
+  },
+  "intro": {
+    "getReady": "PRÊT ?"
+  },
+  "canvas": {
+    "roundLabel": "MANCHE"
+  }
+}

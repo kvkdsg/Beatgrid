@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "prevPresetAria": "Anterior preset",
+    "nextPresetAria": "Siguiente preset"
+  },
+  "hero": {
+    "title": "DI LA PALABRA",
+    "subtitle": "AL RITMO"
+  },
+  "wordEditor": {
+    "placeholder": "PALABRA {{index}}",
+    "start": "INICIAR JUEGO",
+    "generating": "GENERANDO..."
+  },
+  "recording": {
+    "title": "Grabar partida",
+    "onHint": "Se guardará video al finalizar",
+    "offHint": "Solo jugar sin video"
+  },
+  "end": {
+    "title": "Fin del Juego!"
+  },
+  "actions": {
+    "share": "Compartir",
+    "download": "Descargar",
+    "restart": "Reiniciar",
+    "new": "Nuevas",
+    "support": "Invítame a un café"
+  },
+  "errors": {
+    "generation": {
+      "title": "Error al generar imagen",
+      "message": "Prueba con otras palabras",
+      "cta": "Aceptar"
+    },
+    "share": {
+      "failed": "Error al compartir. Intenta descargar el video."
+    },
+    "video": {
+      "saveFailed": "Error guardando video.",
+      "recordingPrefix": "Error grabación: {{message}}"
+    },
+    "spritesheet": {
+      "loadFailed": "No se pudo cargar la imagen del spritesheet."
+    }
+  },
+  "share": {
+    "title": "Gameplay de BeatGrid",
+    "text": "¡Sigue el ritmo! https://beat.boton.one"
+  },
+  "intro": {
+    "getReady": "PREPÁRATE"
+  },
+  "canvas": {
+    "roundLabel": "RONDA"
+  }
+}

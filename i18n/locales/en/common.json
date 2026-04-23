@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "prevPresetAria": "Previous preset",
+    "nextPresetAria": "Next preset"
+  },
+  "hero": {
+    "title": "SAY THE WORD",
+    "subtitle": "ON BEAT"
+  },
+  "wordEditor": {
+    "placeholder": "WORD {{index}}",
+    "start": "START GAME",
+    "generating": "GENERATING..."
+  },
+  "recording": {
+    "title": "Record game",
+    "onHint": "A video will be saved at the end",
+    "offHint": "Just play (no video)"
+  },
+  "end": {
+    "title": "Game Over!"
+  },
+  "actions": {
+    "share": "Share",
+    "download": "Download",
+    "restart": "Restart",
+    "new": "New",
+    "support": "Buy me a coffee"
+  },
+  "errors": {
+    "generation": {
+      "title": "Error generating image",
+      "message": "Try different words",
+      "cta": "OK"
+    },
+    "share": {
+      "failed": "Sharing failed. Try downloading the video."
+    },
+    "video": {
+      "saveFailed": "Error saving video.",
+      "recordingPrefix": "Recording error: {{message}}"
+    },
+    "spritesheet": {
+      "loadFailed": "Failed to load spritesheet image."
+    }
+  },
+  "share": {
+    "title": "BeatGrid Gameplay",
+    "text": "Beat the rhythm! https://beat.boton.one"
+  },
+  "intro": {
+    "getReady": "GET READY"
+  },
+  "canvas": {
+    "roundLabel": "ROUND"
+  }
+}

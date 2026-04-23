@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "prevPresetAria": "Предыдущий пресет",
+    "nextPresetAria": "Следующий пресет"
+  },
+  "hero": {
+    "title": "СКАЖИ СЛОВО",
+    "subtitle": "В РИТМ"
+  },
+  "wordEditor": {
+    "placeholder": "СЛОВО {{index}}",
+    "start": "НАЧАТЬ ИГРУ",
+    "generating": "СОЗДАНИЕ..."
+  },
+  "recording": {
+    "title": "Записать игру",
+    "onHint": "Видео будет сохранено в конце",
+    "offHint": "Просто играй (без видео)"
+  },
+  "end": {
+    "title": "Игра окончена!"
+  },
+  "actions": {
+    "share": "Поделиться",
+    "download": "Скачать",
+    "restart": "Сыграть снова",
+    "new": "Новая",
+    "support": "Купить мне кофе"
+  },
+  "errors": {
+    "generation": {
+      "title": "Ошибка создания изображения",
+      "message": "Попробуйте другие слова",
+      "cta": "ОК"
+    },
+    "share": {
+      "failed": "Не удалось поделиться. Попробуйте скачать видео."
+    },
+    "video": {
+      "saveFailed": "Ошибка сохранения видео.",
+      "recordingPrefix": "Ошибка записи: {{message}}"
+    },
+    "spritesheet": {
+      "loadFailed": "Не удалось загрузить изображение spritesheet."
+    }
+  },
+  "share": {
+    "title": "Геймплей BeatGrid",
+    "text": "Победи ритм! https://beat.boton.one"
+  },
+  "intro": {
+    "getReady": "ПРИГОТОВЬСЯ"
+  },
+  "canvas": {
+    "roundLabel": "РАУНД"
+  }
+}

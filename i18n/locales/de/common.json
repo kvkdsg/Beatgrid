@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "prevPresetAria": "Vorheriges Preset",
+    "nextPresetAria": "Nächstes Preset"
+  },
+  "hero": {
+    "title": "SAG DAS WORT",
+    "subtitle": "IM TAKT"
+  },
+  "wordEditor": {
+    "placeholder": "WORT {{index}}",
+    "start": "SPIEL STARTEN",
+    "generating": "WIRD ERSTELLT..."
+  },
+  "recording": {
+    "title": "Spiel aufnehmen",
+    "onHint": "Video wird am Ende gespeichert",
+    "offHint": "Nur spielen (kein Video)"
+  },
+  "end": {
+    "title": "Spiel vorbei!"
+  },
+  "actions": {
+    "share": "Teilen",
+    "download": "Download",
+    "restart": "Neustart",
+    "new": "Neu",
+    "support": "Spendier mir einen Kaffee"
+  },
+  "errors": {
+    "generation": {
+      "title": "Fehler beim Erstellen",
+      "message": "Versuche andere Wörter",
+      "cta": "OK"
+    },
+    "share": {
+      "failed": "Teilen fehlgeschlagen. Versuche den Download."
+    },
+    "video": {
+      "saveFailed": "Fehler beim Speichern des Videos.",
+      "recordingPrefix": "Aufnahmefehler: {{message}}"
+    },
+    "spritesheet": {
+      "loadFailed": "Spritesheet konnte nicht geladen werden."
+    }
+  },
+  "share": {
+    "title": "BeatGrid Gameplay",
+    "text": "Halte den Beat! https://beat.boton.one"
+  },
+  "intro": {
+    "getReady": "BEREIT MACHEN"
+  },
+  "canvas": {
+    "roundLabel": "RUNDE"
+  }
+}

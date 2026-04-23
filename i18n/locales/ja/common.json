@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "prevPresetAria": "前のプリセット",
+    "nextPresetAria": "次のプリセット"
+  },
+  "hero": {
+    "title": "言ってみて",
+    "subtitle": "ビートに合わせて"
+  },
+  "wordEditor": {
+    "placeholder": "単語 {{index}}",
+    "start": "ゲーム開始",
+    "generating": "生成中..."
+  },
+  "recording": {
+    "title": "ゲームを録画",
+    "onHint": "最後に動画が保存されます",
+    "offHint": "プレイのみ（動画なし）"
+  },
+  "end": {
+    "title": "ゲームオーバー！"
+  },
+  "actions": {
+    "share": "共有",
+    "download": "ダウンロード",
+    "restart": "リスタート",
+    "new": "新規",
+    "support": "コーヒーを奢る"
+  },
+  "errors": {
+    "generation": {
+      "title": "画像生成エラー",
+      "message": "別の単語を試してください",
+      "cta": "OK"
+    },
+    "share": {
+      "failed": "共有に失敗しました。動画をダウンロードしてみてください。"
+    },
+    "video": {
+      "saveFailed": "動画の保存に失敗しました。",
+      "recordingPrefix": "録画エラー: {{message}}"
+    },
+    "spritesheet": {
+      "loadFailed": "スプライトシート画像を読み込めませんでした。"
+    }
+  },
+  "share": {
+    "title": "BeatGrid プレイ動画",
+    "text": "リズムに勝て！ https://beat.boton.one"
+  },
+  "intro": {
+    "getReady": "準備して"
+  },
+  "canvas": {
+    "roundLabel": "ラウンド"
+  }
+}
