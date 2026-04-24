@@ -6,7 +6,6 @@ import { createApp } from "./middleware.mjs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// --- CONFIGURACIÓN DE LOGGING (PRODUCCIÓN) ---
 const logger = pino({
   level: process.env.LOG_LEVEL || "info",
   timestamp: pino.stdTimeFunctions.isoTime,
@@ -16,14 +15,10 @@ const logger = pino({
   base: undefined,
 });
 
-// --- INICIALIZACIÓN DE LA APP ---
 const DIST_DIR = path.resolve(__dirname, "../dist");
 
-// Inicializamos la aplicación Express desde el middleware
-// Asegúrate de que tu middleware.mjs tenga los headers de caché correctos (max-age=365d para assets)
 const app = createApp({ distDir: DIST_DIR });
 
-// --- CONFIGURACIÓN DEL SERVIDOR ---
 const PORT = parseInt(process.env.PORT || "8080", 10);
 const HOST = "0.0.0.0";
 
@@ -37,7 +32,6 @@ const server = app.listen(PORT, HOST, () => {
   });
 });
 
-// --- GRACEFUL SHUTDOWN ---
 const shutdown = (signal) => {
   logger.info({ msg: "Received shutdown signal", signal });
 

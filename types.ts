@@ -1,9 +1,8 @@
 // src/types.ts
 
-// --- TIPOS DEL MOTOR DE JUEGO ---
-export type QuadrantIndex = 0 | 1 | 2 | 3; // Indices into the 2x2 grid (A, B, C, D)
+export type QuadrantIndex = 0 | 1 | 2 | 3;
 
-export type BoardState = readonly number[]; // Length 8 (4x2 grid) - Readonly para inmutabilidad
+export type BoardState = readonly number[]; 
 
 export interface GameSettings {
   words: string[];
@@ -34,11 +33,6 @@ export enum AppState {
   FINISHED = 'finished'
 }
 
-// --- TIPOS DE SERVICIO DE GRABACIÓN (CENTRALIZADOS) ---
-
-/**
- * Configuración necesaria para iniciar el CanvasRecordingService.
- */
 export interface RecordingConfig {
   canvas: HTMLCanvasElement;
   audioTrack?: MediaStreamTrack;
@@ -47,20 +41,13 @@ export interface RecordingConfig {
   audioBitsPerSecond?: number;
 }
 
-/**
- * Resultado estandarizado de una grabación.
- * Centralizado aquí para evitar conflictos de importación en App.tsx.
- */
 export interface RecordingResult {
-  blob: Blob;       // Blob binario del video
-  url: string;      // URL para previsualización (blob:...)
-  mimeType: string; // Tipo MIME real del archivo resultante
-  durationMs: number; // Duración total en milisegundos
+  blob: Blob;     
+  url: string;      
+  mimeType: string; 
+  durationMs: number; 
 }
 
-/**
- * Estado reactivo para la UI de grabación.
- */
 export interface RecordingStatus {
   isRecording: boolean;
   recordedUrl?: string;

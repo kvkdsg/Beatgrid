@@ -1,0 +1,57 @@
+substitutions:
+  _BASE_URL: https://beat.boton.one
+
+timeout: 1200s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  # -------------------------------------------------------------------------
+  # 1. QUALITY GATE
+  # -------------------------------------------------------------------------
+  - name: 'node:24.15.0-bookworm-slim'
+    id: 'quality-checks'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+        echo ">>> 1. Preparando entorno CI..."
+        export CI=true
+        export NODE_ENV=test
+        export BASEURL="${_BASE_URL}"
+
+        corepack enable
+        corepack prepare pnpm@10.33.2 --activate
+
+        pnpm install --frozen-lockfile --ignore-scripts
+
+        echo ">>> 2. Lint..."
+        pnpm lint
+
+        echo ">>> 3. Typecheck..."
+        pnpm typecheck
+
+        echo ">>> 4. Tests con coverage..."
+        pnpm test:coverage
+
+        echo ">>> 5. Verificando build..."
+        export NODE_ENV=production
+        pnpm build
+
+        echo "🧹 Limpiando workspace antes del docker build..."
+        rm -rf node_modules .pnpm-store coverage dist .vite
+
+  # -------------------------------------------------------------------------
+  # 2. VALIDACIÓN DOCKERFILE
+  # -------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'docker-build-validation'
+    args:
+      - 'build'
+      - '-t'
+      - 'beatgrid-ci-validation:latest'
+      - '.'
+    env:
+      - 'DOCKER_BUILDKIT=1'

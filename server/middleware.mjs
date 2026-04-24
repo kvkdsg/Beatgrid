@@ -12,17 +12,15 @@ import { fileURLToPath } from "node:url";
 import { Storage } from "@google-cloud/storage";
 import { getSeoData } from "./seo-content.mjs";
 
-// Importar sharp y definir opciones para el endpoint de API (producción).
 import sharp from "sharp";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// --- CONFIG ---
 const GCS_BUCKET_NAME = process.env.GCS_BUCKET_NAME || "botonone";
 const storage = new Storage();
 const BASE_URL = "https://beat.boton.one";
-const SUPPORTED_LOCALES = [
+const SUPPORTED_LOCALES =[
   "en",
   "es",
   "pt-BR",
@@ -41,10 +39,8 @@ const SUPPORTED_LOCALES = [
 ];
 const DEFAULT_LOCALE = "en";
 
-// Constantes necesarias para la API de imágenes
 const WEBP_OPTIONS = { quality: 85, effort: 4, smartSubsample: true };
 
-// --- SECURITY UTILS ---
 const escapeHtml = (unsafe) => {
   return String(unsafe ?? "")
     .replace(/&/g, "&amp;")
@@ -56,22 +52,18 @@ const escapeHtml = (unsafe) => {
 
 const buildSafeUrl = (p) => encodeURI(`${BASE_URL}${p}`);
 
-// --- HELPERS ---
 function normalizeWord(s) {
   return String(s ?? "").trim().toLowerCase().normalize("NFC");
 }
-const VALID_WORD_REGEX = /^[\p{L}\p{N}\p{M}\s\-]+$/u;
+const VALID_WORD_REGEX = /^[\p{L}\p{N}\p{M}\s-]+$/u;
 function getCacheKey(wordsArray) {
   return crypto.createHash("md5").update(wordsArray.join("|")).digest("hex");
 }
 
-// --- CACHE HELPERS (NO FUNCTIONAL IMPACT) ---
 const IMMUTABLE_1Y = "public, max-age=31536000, immutable";
 
-// --- BOOTSTRAP (ANTI-FLICKER, NO FUNCTIONAL IMPACT) ---
 const DEFAULT_BOOT_WORDS = ["Beat", "Flow", "Grid", "Play"];
 
-// Mantiene la misma semántica Title Case que ya usas en SEO para /share/:slug.
 function parseShareSlugToWordsArray(slug) {
   const raw = String(slug ?? "").trim();
   if (!raw) return null;
@@ -87,16 +79,9 @@ function parseShareSlugToWordsArray(slug) {
 
 function requestAcceptsHtml(req) {
   const accept = String(req.headers.accept || "").toLowerCase();
-
-  // Si no hay Accept, se asume navegación genérica.
   if (!accept) return true;
-
-  // Navegación típica de browsers: incluye text/html o application/xhtml+xml.
   if (accept.includes("text/html") || accept.includes("application/xhtml+xml")) return true;
-
-  // Wildcard: el cliente acepta cualquier tipo (ej: curl por defecto, algunos bots).
   if (accept.includes("*/*")) return true;
-
   return false;
 }
 
@@ -111,7 +96,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     console.error("❌ [Server] Failed to load index.html template:", e);
   }
 
-  // 1. MIDDLEWARES
   app.set("trust proxy", 1);
 
   app.use((req, res, next) => {
@@ -133,16 +117,16 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
         directives: {
           defaultSrc: ["'self'"],
           baseUri: ["'self'"],
-          imgSrc: ["'self'", "data:", "blob:", "https:", "https://storage.googleapis.com"],
+          imgSrc:["'self'", "data:", "blob:", "https:", "https://storage.googleapis.com"],
           mediaSrc: ["'self'", "blob:", "https:"],
-          connectSrc: [
+          connectSrc:[
             "'self'",
             "https://generativelanguage.googleapis.com",
             "https://storage.googleapis.com",
           ],
-          scriptSrc: ["'self'", "'unsafe-inline'", "https://storage.googleapis.com"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          fontSrc: ["'self'", "data:"],
+          scriptSrc:["'self'", "'unsafe-inline'", "https://storage.googleapis.com"],
+          styleSrc:["'self'", "'unsafe-inline'"],
+          fontSrc:["'self'", "data:"],
         },
       },
       crossOriginEmbedderPolicy: false,
@@ -153,9 +137,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
   app.use(compression({ level: 6 }));
   app.use(express.json({ limit: "64kb" }));
 
-  // ------------------------------------------------------------------------------------
-  // STATE OF THE ART HARDENING
-  // ------------------------------------------------------------------------------------
   app.get("/:lang/:file(favicon\\.ico|manifest\\.webmanifest|sw\\.js)", (req, res, next) => {
     const { lang, file } = req.params;
     if (!SUPPORTED_LOCALES.includes(lang)) return next();
@@ -169,7 +150,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     return res.redirect(301, `/${kind}/${rest}`);
   });
 
-  // 2. INFRAESTRUCTURA
   app.get("/healthz", (_, res) => res.send("ok"));
 
   app.get("/favicon.ico", (_, res) => {
@@ -182,7 +162,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     }
   });
 
-  // 3. SEO: SITEMAP & ROBOTS
   app.get("/sitemap.xml", (_, res) => {
     res.setHeader("Content-Type", "application/xml");
     res.setHeader("Cache-Control", "public, max-age=3600");
@@ -220,7 +199,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
       );
   });
 
-  // 4. API & STATIC ASSETS
   const apiLimiter = rateLimit({ windowMs: 60000, max: 20 });
 
   app.post("/api/spritesheet", apiLimiter, async (req, res, next) => {
@@ -304,12 +282,10 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     }
   });
 
-  // Assets
   app.use("/assets", express.static(path.join(distDir, "assets"), { immutable: true, maxAge: "365d" }));
   app.use("/fonts", express.static(path.join(distDir, "fonts"), { immutable: true, maxAge: "365d" }));
   app.use("/locales", express.static(path.join(distDir, "locales"), { immutable: true, maxAge: "365d" }));
 
-  // Imágenes
   app.use(
     "/images",
     express.static(path.join(distDir, "images"), {
@@ -318,7 +294,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     })
   );
 
-  // Audio
   app.use(
     "/audio",
     express.static(path.join(distDir, "audio"), {
@@ -339,7 +314,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
 
   app.use(express.static(distDir, { index: false, maxAge: "1h" }));
 
-  // 5. SEO HANDLER
   app.get("*", (req, res) => {
     if (!requestAcceptsHtml(req)) return res.status(404).send("Not found");
 
@@ -349,7 +323,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     const segments = urlPath.split("/").filter(Boolean);
     const firstSegment = segments[0];
 
-    // A. Redirects & Normalization
     if (urlPath === "/" || segments.length === 0) {
       return serveHtml(req, res, DEFAULT_LOCALE, false, indexTemplate);
     }
@@ -370,7 +343,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
       return res.redirect(301, newPath + qs);
     }
 
-    // B. Serve Content
     return serveHtml(req, res, firstSegment, true, indexTemplate);
   });
 
@@ -381,7 +353,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
       const pathWithoutLang = isLocalizedUrl ? "/" + req.path.split("/").slice(2).join("/") : req.path;
       const normalizedPathWithoutLang = pathWithoutLang === "" ? "/" : pathWithoutLang;
 
-      // Canonical SIEMPRE apunta a la URL con idioma
       const rawCanonicalPath = `/${lang}${normalizedPathWithoutLang === "/" ? "" : normalizedPathWithoutLang}`;
       const canonicalUrl = buildSafeUrl(rawCanonicalPath);
 
@@ -392,18 +363,15 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
         })
         .join("\n    ");
 
-      // x-default apunta a "/en" (o DEFAULT_LOCALE) siempre
       const xDefaultPath = `/${DEFAULT_LOCALE}${
         normalizedPathWithoutLang === "/" ? "" : normalizedPathWithoutLang
       }`;
       const xDefault = `<link rel="alternate" hreflang="x-default" href="${buildSafeUrl(xDefaultPath)}" />`;
 
-      // Data Prep
       let rawTitle = seoData.title;
       let rawDesc = seoData.description;
-      let rawKeywords = seoData.keywords;
+      const rawKeywords = seoData.keywords;
 
-      // BOOT (anti-flicker)
       const isShare = normalizedPathWithoutLang.startsWith("/share/");
       let bootWords = DEFAULT_BOOT_WORDS;
 
@@ -413,7 +381,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
         const shareWords = parseShareSlugToWordsArray(slug);
         if (shareWords) bootWords = shareWords;
 
-        // Mantiene tu SEO dinámico existente
         if (slug) {
           const words = slug
             .split("-")
@@ -431,10 +398,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
       const safeP = escapeHtml(seoData.p);
       const safeCta = escapeHtml(seoData.cta);
 
-      // --- CORRECCIÓN SEO: IMPLEMENTACIÓN DE SCHEMA WEBSITE Y CORRECCIÓN DE LOGO ---
-      // Esto soluciona que Google muestre "boton.one" en lugar de "BeatGrid"
-
-      // 1. Schema WebSite: Define el nombre oficial del sitio
       const websiteSchema = {
         "@context": "https://schema.org",
         "@type": "WebSite",
@@ -443,8 +406,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
         url: BASE_URL,
       };
 
-      // 2. Schema VideoGame: Define la entidad del juego y corrige el logo de la organización
-      // Apuntamos al icono de 512px en /pwa/ que SÍ existe en tu estructura de carpetas
       const gameSchema = {
         "@context": "https://schema.org",
         "@type": "VideoGame",
@@ -468,7 +429,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
       const safeWebsiteJsonLd = JSON.stringify(websiteSchema).replace(/</g, "\\u003c");
       const safeGameJsonLd = JSON.stringify(gameSchema).replace(/</g, "\\u003c");
 
-      // Bootstrapped state
       const boot = {
         lang,
         routeKind: isShare ? "share" : "root",
@@ -504,7 +464,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     <script>window.__BOOT__=${safeBoot};</script>
       `;
 
-      // SSR shell alineado con el layout inicial
       const appShellHtml = `
 <div class="ssr-shell" id="ssr-shell" data-ssr-shell="true">
   <div class="h-100svh min-h-100svh w-full relative overflow-hidden bg-f0f0f0 box-border">
@@ -554,7 +513,7 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
             <button
               type="button"
               aria-label="Previous"
-              class="group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-4px4px0px0pxrgba(0,0,0,1) flex-shrink-0 rounded-lg transition-all duration-150">
+              class="group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-4px4px0px0pxrgba(0,0,0,1) shrink-0 rounded-lg transition-all duration-150">
               <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
                 class="w-5 h-5 md:w-7 md:h-7 text-black transition-transform group-hover:scale-110">
                 <path d="M19 12H5M12 19l-7-7 7-7"></path>
@@ -573,7 +532,7 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
             <button
               type="button"
               aria-label="Next"
-              class="group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-4px4px0px0pxrgba(0,0,0,1) flex-shrink-0 rounded-lg transition-all duration-150">
+              class="group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-4px4px0px0pxrgba(0,0,0,1) shrink-0 rounded-lg transition-all duration-150">
               <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
                 class="w-5 h-5 md:w-7 md:h-7 text-black transition-transform group-hover:scale-110 rotate-180">
                 <path d="M19 12H5M12 19l-7-7 7-7"></path>
@@ -637,7 +596,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
 </div>
       `;
 
-      // Reemplazo robusto de la etiqueta HTML entera
       const finalHtml = template
         .replace("<!--__INJECT_HEAD__-->", headHtml)
         .replace("<!--__INJECT_APP_SHELL__-->", appShellHtml)
@@ -645,7 +603,6 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
 
       res.setHeader("Content-Language", lang);
 
-      // Se mantiene (compat) aunque aquí no cambies contenido por Accept-Language.
       if (!isLocalizedUrl) res.setHeader("Vary", "Accept-Language");
 
       res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
@@ -656,6 +613,7 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use((err, req, res, next) => {
     console.error(`[${req.requestId}] Error:`, err);
     res.status(500).json({ error: "Internal Server Error" });

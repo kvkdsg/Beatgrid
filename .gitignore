@@ -29,6 +29,7 @@ dist-ssr
 # Custom ignores
 deploy.mc
 deploy.md
+coverage/
 
 # Editor directories and files
 .vscode/*

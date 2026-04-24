@@ -4,7 +4,6 @@ import {
 } from '../../constants';
 import { BoardState } from '../../types';
 
-// USAMOS IMAGEBITMAP PARA MÁXIMO RENDIMIENTO
 export type SpriteSource = ImageBitmap | HTMLCanvasElement | HTMLImageElement;
 
 export class CanvasRenderer {
@@ -21,7 +20,6 @@ export class CanvasRenderer {
     this.ctx.imageSmoothingEnabled = true;
     this.ctx.imageSmoothingQuality = 'high';
 
-    // Validación de dimensiones
     const width = 'width' in this.spritesheet ? this.spritesheet.width : (this.spritesheet as HTMLImageElement).naturalWidth;
     const height = 'height' in this.spritesheet ? this.spritesheet.height : (this.spritesheet as HTMLImageElement).naturalHeight;
 
@@ -54,10 +52,6 @@ export class CanvasRenderer {
     this.activeShadowCache = canvas;
   }
 
-  /**
-   * Renderiza el estado del juego en formato ESTÁNDAR 4x2.
-   * Aplica CLIPPING por celda para evitar que el pulso contamine casillas adyacentes (Texture Bleeding).
-   */
   public render(
     width: number,
     height: number,
@@ -71,18 +65,12 @@ export class CanvasRenderer {
     const bp = this.clamp01(beatProgress);
     const interp = this.clamp01(interpolation);
 
-    // Limpiar canvas completo
     ctx.clearRect(0, 0, width, height);
     
-    let localPulseProgress = bp < 0.5 ? bp * 2 : (bp - 0.5) * 2;
+    const localPulseProgress = bp < 0.5 ? bp * 2 : (bp - 0.5) * 2;
     const pulseIntensity = Math.max(0, 1 - (localPulseProgress * 3.5)); 
-    
-    // AJUSTE 1: Reducir ligeramente la escala máxima para evitar que el clip corte el brillo de forma brusca
-    // Antes 0.15 -> Ahora 0.12
     const pulseScale = 1.0 + (pulseIntensity * 0.12); 
 
-    // AJUSTE 2: Aumentar el gap para dar más "aire" dentro del cuadrante seguro
-    // Antes 12 -> Ahora 16
     const gap = 16;
     
     const activeBorderWidth = 8;
@@ -92,16 +80,14 @@ export class CanvasRenderer {
 
     const len = currentPattern.length;
 
-    // Configuración Grid 4x2 Estándar
     const cols = 4;
-    const cellW = width / cols; // 400px
-    const cellH = height / 2;   // 400px
+    const cellW = width / cols;
+    const cellH = height / 2;  
 
     for (let i = 0; i < len; i++) {
       const col = i % cols; 
       const row = (i / cols) | 0;
 
-      // Coordenadas absolutas del cuadrante (Safe Zone)
       const quadrantX = col * cellW;
       const quadrantY = row * cellH;
 
@@ -112,12 +98,8 @@ export class CanvasRenderer {
 
       const isActive = (activeCellIndex !== -1 && i === activeCellIndex);
 
-      // --- INICIO AISLAMIENTO (FIX GLITCH VERTICAL) ---
-      // Guardamos el estado antes del clip
       ctx.save();
       
-      // Definimos la máscara de recorte estricta al cuadrante asignado.
-      // NINGÚN píxel (sombra, borde, escalado) podrá salir de aquí.
       ctx.beginPath();
       ctx.rect(quadrantX, quadrantY, cellW, cellH);
       ctx.clip();
@@ -126,8 +108,6 @@ export class CanvasRenderer {
         const cx = drawX + drawW / 2;
         const cy = drawY + drawH / 2;
 
-        // Transformaciones locales (Scale/Translate)
-        // Nota: Al estar dentro del clip, si escala mucho, se cortará en los bordes del cuadrante, no invadirá al vecino.
         ctx.translate(cx, cy);
         ctx.scale(pulseScale, pulseScale);
         ctx.translate(-cx, -cy);
@@ -167,8 +147,6 @@ export class CanvasRenderer {
         ctx.strokeRect(drawX, drawY, drawW, drawH);
       }
 
-      // --- FIN AISLAMIENTO ---
-      // Restauramos el contexto (quita el clip y las transformaciones) para la siguiente celda
       ctx.restore();
     }
   }
@@ -181,7 +159,7 @@ export class CanvasRenderer {
 
     if (alpha < 0.99) this.ctx.globalAlpha = alpha;
     
-    this.ctx.drawImage(this.spritesheet as any, sx, sy, QUADRANT_SIZE, QUADRANT_SIZE, dx, dy, dw, dh);
+    this.ctx.drawImage(this.spritesheet as CanvasImageSource, sx, sy, QUADRANT_SIZE, QUADRANT_SIZE, dx, dy, dw, dh);
 
     if (alpha < 0.99) this.ctx.globalAlpha = 1.0;
   }

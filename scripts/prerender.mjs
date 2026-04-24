@@ -7,9 +7,6 @@ import { getSeoData } from "../server/seo-content.mjs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// -------------------------------------------------------------------------------------
-// CONFIG (mantener en sync con server/middleware.mjs)
-// -------------------------------------------------------------------------------------
 const SUPPORTED_LOCALES = [
   "en",
   "es",
@@ -31,14 +28,11 @@ const DEFAULT_LOCALE = "en";
 
 const DEFAULT_BOOT_WORDS = ["Beat", "Flow", "Grid", "Play"];
 
-// BASE_URL: se puede sobreescribir por env o CLI.
 function getBaseUrlFromEnvOrDefault() {
   const env = String(process.env.BASE_URL || process.env.PUBLIC_BASE_URL || "").trim();
   return env || "https://beat.boton.one";
 }
 
-// STATE OF THE ART (NO FUNCTIONAL IMPACT):
-// - Escapes completos (incluye comilla simple) para evitar HTML inválido.
 function escapeHtml(unsafe) {
   return String(unsafe ?? "")
     .replace(/&/g, "&amp;")
@@ -104,10 +98,10 @@ async function rmDirIfExists(dir) {
 function buildHeadHtml({
   baseUrl,
   lang,
-  pathWithoutLang, // for root SSG: always "/"
+  pathWithoutLang,
   seoData,
 }) {
-  const lastMod = new Date().toISOString().split("T")[0]; // no se usa en head, pero útil si luego quieres.
+  const lastMod = new Date().toISOString().split("T")[0]; 
   void lastMod;
 
   const rawCanonicalPath = `/${lang}${pathWithoutLang === "/" ? "" : pathWithoutLang}`;
@@ -118,8 +112,6 @@ function buildHeadHtml({
     return `<link rel="alternate" hreflang="${loc}" href="${buildSafeUrl(baseUrl, p)}" />`;
   }).join("\n    ");
 
-  // STATE OF THE ART (NO FUNCTIONAL IMPACT):
-  // - x-default SIEMPRE apunta al default locale, no a "/".
   const xDefaultPath = `/${DEFAULT_LOCALE}${pathWithoutLang === "/" ? "" : pathWithoutLang}`;
   const xDefault = `<link rel="alternate" hreflang="x-default" href="${buildSafeUrl(baseUrl, xDefaultPath)}" />`;
 
@@ -131,9 +123,6 @@ function buildHeadHtml({
   const safeDesc = escapeHtml(rawDesc);
   const safeKeywords = escapeHtml(rawKeywords);
 
-  // --- SCHEMA CORRECTION START ---
-  
-  // 1. WebSite Schema: Crucial para que Google muestre "BeatGrid" y no "boton.one"
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -142,7 +131,6 @@ function buildHeadHtml({
     "url": baseUrl
   };
 
-  // 2. VideoGame Schema: Actualizado con Logo correcto
   const gameSchema = {
     "@context": "https://schema.org",
     "@type": "VideoGame",
@@ -153,7 +141,6 @@ function buildHeadHtml({
         "@type": "Organization", 
         "name": "BotonOne",
         "url": baseUrl,
-        // Apuntamos al icono PWA de alta resolución que SÍ existe
         "logo": {
             "@type": "ImageObject",
             "url": `${baseUrl}/pwa/icon-512.png` 
@@ -167,8 +154,6 @@ function buildHeadHtml({
   const safeWebsiteJsonLd = JSON.stringify(websiteSchema).replace(/</g, "\\u003c");
   const safeGameJsonLd = JSON.stringify(gameSchema).replace(/</g, "\\u003c");
   
-  // --- SCHEMA CORRECTION END ---
-
   const boot = {
     lang,
     routeKind: "root",
@@ -211,8 +196,6 @@ function buildAppShellHtml({ lang, seoData }) {
   const safeP = escapeHtml(seoData.p);
   const safeCta = escapeHtml(seoData.cta);
 
-  // STATE OF THE ART (NO FUNCTIONAL IMPACT):
-  // - Añadimos aria-label a inputs readonly para evitar "Form elements do not have associated labels".
   const wordsChipsHtml = DEFAULT_BOOT_WORDS.map((w, i) => {
     const safeW = escapeHtml(w);
     const safeAria = escapeHtml(`Word ${i + 1}`);
@@ -235,12 +218,6 @@ function buildAppShellHtml({ lang, seoData }) {
     `.trim();
   }).join("\n");
 
-  // Shell alineado con tu layout inicial (GameContent showMenu) pero sin lógica interactiva.
-  //
-  // STATE OF THE ART (NO FUNCTIONAL IMPACT):
-  // - NO se usa aria-hidden en el HTML prerender: el objetivo es que el contenido sea indexable/semántico.
-  // - Añadimos nombres accesibles (aria-label) a botones para evitar "Buttons do not have an accessible name".
-  // - Marcamos los SVG como decorativos (aria-hidden/focusable) para que no interfieran en el naming.
   return `
 <div class="ssr-shell" id="ssr-shell" data-ssr-shell="true">
   <div class="h-100svh min-h-100svh w-full relative overflow-hidden bg-f0f0f0 box-border">
@@ -361,9 +338,6 @@ function injectIntoTemplate({ template, headHtml, appShellHtml, lang }) {
 
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  // NOTA OPERATIVA (NO FUNCTIONAL IMPACT):
-  // Para evitar trabajo extra en main-thread al arrancar, el marcador
-  // <!--__INJECT_APP_SHELL__--> debería estar fuera de <div id="root"> (root vacío).
   return template
     .replace("<!--__INJECT_HEAD__-->", headHtml)
     .replace("<!--__INJECT_APP_SHELL__-->", appShellHtml)
