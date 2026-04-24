@@ -11,11 +11,9 @@ import {
 import { HelmetProvider } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 
-// --- IMPORTS DE TIPOS (FUENTE ÚNICA DE LA VERDAD - SOLO TIPOS, NO JS EN RUNTIME) ---
 import type { AppState as AppStateType, GameSettings, GameTimeline, RecordingStatus, RecordingResult } from './types';
-import { AppState } from './types'; // Enum necesario para runtime.
+import { AppState } from './types'; 
 
-// Importamos TIPOS de las clases pesadas para TS
 import type { CanvasRenderer } from './lib/game/renderer';
 import type { SpriteSource } from './lib/game/renderer';
 
@@ -32,7 +30,6 @@ import {
   SYNC_SAMPLE_SIZE,
   SYNC_AUDIO_EPSILON_MS,
   RECORDING_VIDEO_LAG_MS,
-  // --- NUEVOS IMPORTS PARA EL RECORTE ---
   RECORDING_TRIM_START_MS,
   RECORDING_TRIM_END_MS,
   BUY_ME_COFFEE_URL
@@ -45,14 +42,19 @@ import { findPreset, pickRandomPreset, PRESETS, wordsKey } from './presets';
 import { setLocale, i18n } from './i18n';
 import { AppLocale, toSupportedLocale, DEFAULT_LOCALE } from './i18n/config';
 
-// --- OPTIMIZATION: GLOBAL CACHE ---
+const TAU = Math.PI * 2;
+const clamp01 = (v: number) => Math.max(0, Math.min(1, Number.isNaN(v) ? 0 : v));
+const easeOutCubic = (x: number) => 1 - Math.pow(1 - clamp01(x), 3);
+const beatPulse = (phase01: number) => {
+  const tVal = Math.min(1, clamp01(phase01) * 3.5);
+  return 1 - easeOutCubic(tVal);
+};
+
 const textMetricsCache = new Map<string, number>();
 
-// --- CONFIGURACIÓN DE VIDEO (GRABACIÓN) ---
 const VIDEO_WIDTH = 1280;
 const VIDEO_HEIGHT = 720;
 
-// --- CONFIGURACIÓN DE CANVAS ---
 const BASE_W = 1600;
 const BASE_H = 800;
 const VERTICAL_W = 900;
@@ -70,12 +72,11 @@ const LOCALE_MENU: AppLocale[] =[
   'ru', 'ar', 'ja', 'ko', 'zh-Hans'
 ];
 
-// --- COMPONENTE FLECHA ---
 const NavArrow: React.FC<{ direction: 'left' | 'right'; onClick: () => void; disabled?: boolean; ariaLabel: string }> = ({ direction, onClick, disabled, ariaLabel }) => (
   <button
     onClick={onClick}
     disabled={disabled}
-    className={`group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0 rounded-lg transition-all duration-150 ${disabled ? 'opacity-50 cursor-not-allowed shadow-none transform-none' : 'hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'}`}
+    className={`group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] shrink-0 rounded-lg transition-all duration-150 ${disabled ? 'opacity-50 cursor-not-allowed shadow-none transform-none' : 'hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'}`}
     aria-label={ariaLabel}
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" 
@@ -85,30 +86,25 @@ const NavArrow: React.FC<{ direction: 'left' | 'right'; onClick: () => void; dis
   </button>
 );
 
-// --- LOGICA PRINCIPAL DEL JUEGO ---
 const GameContent: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { lang, slug } = useParams();
+  const { slug } = useParams();
 
-  // --- UI STATE ---
-  const [langOpen, setLangOpen] = useState(false);
+  const[langOpen, setLangOpen] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
   const[isVisible, setIsVisible] = useState(false);
   const langRef = useRef<HTMLDivElement | null>(null);
 
-  // --- MOBILE / LAYOUT ANIMATION STATE ---
-  const [isMobileVertical, setIsMobileVertical] = useState(false);
+  const[isMobileVertical, setIsMobileVertical] = useState(false);
   const layoutAnim = useRef(0);
   const lastLayoutProgressRef = useRef<number>(-1);
 
-  // --- AUDIO CONTEXT REFS ---
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const audioDestNodeRef = useRef<MediaStreamAudioDestinationNode | null>(null);
 
-  // --- AUTO-RESET ON LANDSCAPE ---
   useEffect(() => {
     const mediaQuery = window.matchMedia('(orientation: landscape)');
     const handleOrientationChange = (e: MediaQueryListEvent | MediaQueryList) => {
@@ -119,7 +115,6 @@ const GameContent: React.FC = () => {
     return () => mediaQuery.removeEventListener('change', handleOrientationChange);
   },[]);
 
-  // Animación del menú de idioma
   useEffect(() => {
     if (langOpen) {
       setShouldRender(true);
@@ -132,25 +127,25 @@ const GameContent: React.FC = () => {
   }, [langOpen]);
 
   const currentLocale = useMemo(() => 
-    toSupportedLocale(i18n.resolvedLanguage ?? i18n.language),[i18n.resolvedLanguage, i18n.language]);
+    toSupportedLocale(i18n.resolvedLanguage ?? i18n.language) ?? DEFAULT_LOCALE,[i18n.resolvedLanguage, i18n.language]
+  );
 
   const canvasLabelsRef = useRef({ roundLabel: 'ROUND' });
   useEffect(() => { canvasLabelsRef.current.roundLabel = t('canvas.roundLabel'); }, [t]);
 
-  // --- GAME STATE & URL HYDRATION ---
   const parseSlug = (s: string) => s.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1));
 
-  const [appState, setAppState] = useState<AppStateType>(AppState.IDLE);
-  const [isGeminiGenerating, setIsGeminiGenerating] = useState(false);
+  const[appState, setAppState] = useState<AppStateType>(AppState.IDLE);
+  const[isGeminiGenerating, setIsGeminiGenerating] = useState(false);
 
-  const [words, setWords] = useState<string[]>(() => {
+  const[words, setWords] = useState<string[]>(() => {
     if (slug) {
       try {
         const decoded = parseSlug(slug);
         if (decoded.length === 4) return decoded;
-      } catch (e) { console.warn("Invalid slug, falling back to preset"); }
+      } catch { console.warn("Invalid slug, falling back to preset"); }
     }
-    return [...pickRandomPreset().words];
+    return[...pickRandomPreset().words];
   });
 
   useEffect(() => {
@@ -160,21 +155,21 @@ const GameContent: React.FC = () => {
     }
   }, [slug, appState]);
 
-  const [spritesheetUrl, setSpritesheetUrl] = useState<string | null>(null);
-  const [enableRecording, setEnableRecording] = useState<boolean>(true);
-  const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>({ isRecording: false });
+  const[enableRecording, setEnableRecording] = useState<boolean>(true);
+  const[recordingStatus, setRecordingStatus] = useState<RecordingStatus>({ isRecording: false });
 
-  const [uiRoundInfo, setUiRoundInfo] = useState<{ round: number; beat: number }>({ round: 1, beat: 0 });
-  const [uiOverlayState, setUiOverlayState] = useState<{ show: boolean; alpha: number; pattern: readonly number[] }>({ show: false, alpha: 0, pattern: [] });
+  const[uiRoundInfo, setUiRoundInfo] = useState<{ round: number; beat: number; totalBeats: number }>({ round: 1, beat: 0, totalBeats: 40 });
+  const [uiOverlayState, setUiOverlayState] = useState<{ show: boolean; alpha: number; pattern: readonly number[] }>({ show: false, alpha: 0, pattern:[] });
   const [introText, setIntroText] = useState("");
   const[isInIntro, setIsInIntro] = useState(false);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [genErrorOpen, setGenErrorOpen] = useState(false);
-  const [genErrorClosing, setGenErrorClosing] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const[genErrorClosing, setGenErrorClosing] = useState(false);
   const genErrorAutoCloseTimerRef = useRef<number | null>(null);
   const genErrorFadeTimerRef = useRef<number | null>(null);
 
-  // --- REFS ---
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewCanvasRef = useRef<HTMLCanvasElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -182,13 +177,12 @@ const GameContent: React.FC = () => {
   const spritesheetRef = useRef<SpriteSource | null>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
   
-  // OPTIMIZATION: Ref para guardar el constructor de la clase CanvasRenderer
   const CanvasRendererClassRef = useRef<typeof CanvasRenderer | null>(null);
 
   const timelineRef = useRef<GameTimeline | null>(null);
   const requestRef = useRef<number | undefined>(undefined);
   
-  // Ref genérica para el servicio de grabación cargado dinámicamente
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recordingServiceRef = useRef<any | null>(null);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -214,7 +208,6 @@ const GameContent: React.FC = () => {
   const cachedBgCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const isRecordingActiveRef = useRef<boolean>(false);
-  // --- NUEVAS REFS PARA GESTIÓN DE RECORTE ---
   const recordingStartedRef = useRef<boolean>(false);
   const recordingStoppedRef = useRef<boolean>(false);
 
@@ -226,10 +219,8 @@ const GameContent: React.FC = () => {
 
   const[canShareNative, setCanShareNative] = useState(false);
   const normalizedWords = useMemo(() => (words ??[]).map((w) => String(w ?? '').trim()), [words]);
-  const TAU = Math.PI * 2;
   const getReadyText = t('intro.getReady');
 
-  // --- NAVIGATION & I18N HELPERS ---
   const handleLanguageChange = async (newLocale: AppLocale) => {
     await setLocale(newLocale);
     setLangOpen(false);
@@ -251,7 +242,6 @@ const GameContent: React.FC = () => {
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   },[]);
 
-  // --- TIMERS & ANIMATION UTILS ---
   const clearGenErrorTimers = useCallback(() => {
     if (genErrorAutoCloseTimerRef.current) clearTimeout(genErrorAutoCloseTimerRef.current);
     if (genErrorFadeTimerRef.current) clearTimeout(genErrorFadeTimerRef.current);
@@ -259,20 +249,14 @@ const GameContent: React.FC = () => {
 
   const closeGenError = useCallback(() => {
     setGenErrorClosing(true);
-    genErrorFadeTimerRef.current = window.setTimeout(() => { setGenErrorOpen(false); setGenErrorClosing(false); }, 300);
+    genErrorFadeTimerRef.current = window.setTimeout(() => { 
+    }, 300);
   },[]);
 
   const openGenError = useCallback(() => {
-    clearGenErrorTimers(); setGenErrorOpen(true); setGenErrorClosing(false);
+    clearGenErrorTimers(); 
     genErrorAutoCloseTimerRef.current = window.setTimeout(() => closeGenError(), 5000);
   }, [clearGenErrorTimers, closeGenError]);
-
-  const clamp01 = (v: number) => Math.max(0, Math.min(1, Number.isNaN(v) ? 0 : v));
-  const easeOutCubic = (x: number) => 1 - Math.pow(1 - clamp01(x), 3);
-  const beatPulse = (phase01: number) => {
-    const tVal = Math.min(1, clamp01(phase01) * 3.5);
-    return 1 - easeOutCubic(tVal);
-  };
 
   const computeCornerDance = useCallback((timeMs: number) => {
     const bpm = DEFAULT_BPM;
@@ -303,7 +287,7 @@ const GameContent: React.FC = () => {
     };
     set(cornerTLRef.current, -15, 1); set(cornerTRRef.current, 15, -1);
     set(cornerBLRef.current, -10, 1); set(cornerBRRef.current, 10, -1);
-  }, [computeCornerDance]);
+  },[computeCornerDance]);
 
   const prepareSpriteSource = useCallback((img: HTMLImageElement): HTMLCanvasElement => {
     const w = img.naturalWidth || img.width;
@@ -315,7 +299,6 @@ const GameContent: React.FC = () => {
     return offscreen;
   },[]);
 
-  // --- OPTIMIZATION: DELAYED BACKGROUND GENERATION ---
   const ensureBackgroundCache = useCallback(async () => {
     if (cachedBgCanvasRef.current) return; 
 
@@ -353,7 +336,6 @@ const GameContent: React.FC = () => {
     }
   },[]);
 
-  // --- SETUP DEL GRAFO DE AUDIO ---
   const setupAudioGraph = useCallback(() => {
     if (!audioRef.current) return null;
     
@@ -365,6 +347,7 @@ const GameContent: React.FC = () => {
     }
 
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const Ctx = window.AudioContext || (window as any).webkitAudioContext;
         const ctx = new Ctx();
         audioContextRef.current = ctx;
@@ -386,14 +369,13 @@ const GameContent: React.FC = () => {
     }
   },[]);
 
-  // --- CLEANUP ON UNMOUNT ---
   useEffect(() => {
     isMountedRef.current = true;
     resetCornerTransform();
-    (document as any).fonts?.ready?.catch?.(() => {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (document as any).fonts?.ready?.catch?.(() => { /* ignore */ });
     return () => { isMountedRef.current = false; clearGenErrorTimers(); };
-  }, [resetCornerTransform, clearGenErrorTimers]);
-
+  },[resetCornerTransform, clearGenErrorTimers]);
 
   const cancelRafIfAny = useCallback(() => {
     if (requestRef.current !== undefined) { cancelAnimationFrame(requestRef.current); requestRef.current = undefined; }
@@ -411,11 +393,10 @@ const GameContent: React.FC = () => {
     syncRef.current.startTime = perfMs - audioMs;
     syncRef.current.visualOffset = 0;
     syncRef.current.isLocked = true;
-    syncRef.current.driftSamples = [];
+    syncRef.current.driftSamples =[];
     syncRef.current.lastAudioTime = audioMs;
   },[]);
 
-  // --- HELPER DE RENDERIZADO COMPUESTO ---
   const renderCompositeFrame = useCallback((timeMs: number, opts?: { forceIntro?: boolean; introTextOverride?: string; gameStateOverride?: Partial<GameState> | null }) => {
     const ctx = compositeCtxRef.current;
     const composite = compositeCanvasRef.current;
@@ -553,8 +534,7 @@ const GameContent: React.FC = () => {
     
   },[appState, isInIntro, introText, computeCornerDance, normalizedWords, canvasLabelsRef]);
 
-  // --- HELPER PARA INICIAR GRABACIÓN DIFERIDA ---
-  const tryStartRecordingWithTrim = useCallback(async () => {
+  const tryStartRecordingWithTrim = useCallback(async function loop() {
     if (recordingStartedRef.current) return;
 
     const a = audioRef.current;
@@ -564,10 +544,9 @@ const GameContent: React.FC = () => {
     if (!a || !recorder || !args) return;
 
     const audioMs = a.currentTime * 1000;
-    // Si no ha pasado el umbral de inicio (ej. 3s), esperamos al siguiente frame
     if (audioMs < RECORDING_TRIM_START_MS) {
       requestAnimationFrame(() => {
-        void tryStartRecordingWithTrim();
+        void loop();
       });
       return;
     }
@@ -575,7 +554,6 @@ const GameContent: React.FC = () => {
     recordingStartedRef.current = true;
     isRecordingActiveRef.current = true;
 
-    // Warmup alineado al reloj actual para evitar frames viejos
     const now = performance.now();
     const visualRawTime = now - syncRef.current.startTime + syncRef.current.visualOffset;
     const warmupTimeMs = Math.max(0, visualRawTime) + RECORDING_VIDEO_LAG_MS;
@@ -614,8 +592,8 @@ const GameContent: React.FC = () => {
     if (recordingServiceRef.current) { recordingServiceRef.current.cancelRecording(); recordingServiceRef.current = null; }
     if (recordingStatus.recordedUrl) URL.revokeObjectURL(recordingStatus.recordedUrl);
     generationTokenRef.current += 1;
-    setAppState(AppState.IDLE); setSpritesheetUrl(null); 
-    setUiRoundInfo({ round: 1, beat: 0 }); setUiOverlayState({ show: false, alpha: 0, pattern:[] });
+    setAppState(AppState.IDLE); 
+    setUiRoundInfo({ round: 1, beat: 0, totalBeats: 40 }); setUiOverlayState({ show: false, alpha: 0, pattern:[] });
     setRecordingStatus({ isRecording: false });
     setIsInIntro(false); setIntroText("");
     setIsGeminiGenerating(false);
@@ -641,7 +619,7 @@ const GameContent: React.FC = () => {
     const currentKey = wordsKey(words);
     const currentIndex = PRESETS.findIndex(p => wordsKey(p.words) === currentKey);
     setWords([...PRESETS[(currentIndex + 1) % PRESETS.length].words]);
-  }, [words, appState]);
+  },[words, appState]);
 
   const handlePrevPreset = useCallback(() => {
     if (appState !== AppState.IDLE) return;
@@ -659,6 +637,7 @@ const GameContent: React.FC = () => {
     try {
       const shareData = { files: [file], title: t('share.title'), text: t('share.text') };
       if (navigator.canShare(shareData)) await navigator.share(shareData);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) { if (err.name !== 'AbortError') alert(t('errors.share.failed')); }
   }, [recordingStatus, t]);
 
@@ -667,11 +646,16 @@ const GameContent: React.FC = () => {
       const rawMime = recordingStatus.mimeType.toLowerCase();
       const cleanMime = rawMime.includes('mp4') ? 'video/mp4' : 'video/webm';
       const file = new File([recordingStatus.recordedBlob], `test.${cleanMime.split('/')[1]}`, { type: cleanMime, lastModified: Date.now() });
-      try { setCanShareNative(navigator.canShare({ files: [file] })); } catch (e) { setCanShareNative(false); }
-    } else { setCanShareNative(false); }
+      try { 
+        setCanShareNative(navigator.canShare({ files: [file] })); 
+      } catch { 
+        setCanShareNative(false); 
+      }
+    } else { 
+      setCanShareNative(false); 
+    }
   }, [recordingStatus]);
 
-  // --- START GAME SESSION (CORREGIDO: Recorte + Code-Splitting) ---
   const startGameSession = useCallback(async (currentWords: string[]) => {
     cancelRafIfAny();
     await ensureBackgroundCache();
@@ -679,6 +663,7 @@ const GameContent: React.FC = () => {
     const seed = Math.random().toString(36).substr(2, 9); sessionSeedRef.current = seed;
     const settings: GameSettings = { words: currentWords, bpm: DEFAULT_BPM, beatsPerRound: BEATS_PER_ROUND, seed };
     timelineRef.current = createTimeline(settings);
+    setUiRoundInfo({ round: 1, beat: 0, totalBeats: timelineRef.current.totalBeats });
 
     if (!rendererRef.current && canvasRef.current && spritesheetRef.current) {
         const { CanvasRenderer } = await import('./lib/game/renderer');
@@ -708,34 +693,33 @@ const GameContent: React.FC = () => {
              audioTrack = destNode.stream.getAudioTracks()[0];
           } else if (audioRef.current) {
              try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const a = audioRef.current as any;
                 const s = a.captureStream ? a.captureStream() : a.mozCaptureStream();
                 if (s) audioTrack = s.getAudioTracks()[0];
-             } catch(e) {}
+             } catch { /* ignore */ }
           }
 
           const targetCanvas = compositeCanvasRef.current || canvasRef.current;
           
-          // Reset flags por sesión
           recordingStartedRef.current = false;
           recordingStoppedRef.current = false;
           pendingRecordingArgsRef.current = null;
 
-          // Guardar args, pero NO arrancar aún
           pendingRecordingArgsRef.current = {
             canvas: targetCanvas,
             audioTrack,
             videoBitsPerSecond: 2_500_000
           };
 
-          // Nota: isRecordingActiveRef.current debe permanecer false hasta que el recorder arranque de verdad
           isRecordingActiveRef.current = false;
           setRecordingStatus({ isRecording: true });
         }
-      } catch (error: any) {
+      } catch (error: Error | unknown) {
         console.error("Failed to load or start recording service:", error);
         isRecordingActiveRef.current = false;
-        setRecordingStatus({ isRecording: false, error: `Error grabación: ${error.message}` });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setRecordingStatus({ isRecording: false, error: `Error grabación: ${(error as any).message}` });
       }
     } else {
       isRecordingActiveRef.current = false;
@@ -756,7 +740,6 @@ const GameContent: React.FC = () => {
       }
       
       a.play().then(() => {
-         // Arranque diferido +3s (recorte inicio)
          void tryStartRecordingWithTrim();
       }).catch(() => { 
         syncRef.current.isLocked = false; 
@@ -787,7 +770,7 @@ const GameContent: React.FC = () => {
     timelineRef.current = createTimeline({ words, bpm: DEFAULT_BPM, beatsPerRound: BEATS_PER_ROUND, seed });
 
     engineStateRef.current = undefined; 
-    setUiRoundInfo({ round: 1, beat: 0 });
+    setUiRoundInfo({ round: 1, beat: 0, totalBeats: timelineRef.current.totalBeats });
     setIsInIntro(true); setIntroText("");
 
     const now = performance.now();
@@ -811,15 +794,15 @@ const GameContent: React.FC = () => {
              audioTrack = destNode.stream.getAudioTracks()[0];
           } else if (audioRef.current) {
              try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const a = audioRef.current as any;
                 const s = a.captureStream ? a.captureStream() : a.mozCaptureStream();
                 if (s) audioTrack = s.getAudioTracks()[0];
-             } catch(e) {}
+             } catch { /* ignore */ }
           }
 
           const targetCanvas = compositeCanvasRef.current || canvasRef.current;
           
-          // Reset flags y guardar args para arranque diferido
           recordingStartedRef.current = false;
           recordingStoppedRef.current = false;
           pendingRecordingArgsRef.current = null;
@@ -833,10 +816,11 @@ const GameContent: React.FC = () => {
           isRecordingActiveRef.current = false;
           setRecordingStatus({ isRecording: true });
         }
-      } catch (e: any) {
+      } catch (e: Error | unknown) {
         console.error("Failed to restart recording service:", e);
         isRecordingActiveRef.current = false;
-        setRecordingStatus({ isRecording: false, error: e.message });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setRecordingStatus({ isRecording: false, error: (e as any).message });
       }
     }
 
@@ -854,7 +838,6 @@ const GameContent: React.FC = () => {
       }
       
       a.play().then(() => {
-         // Arranque diferido +3s
          void tryStartRecordingWithTrim();
       }).catch(() => {});
     }
@@ -870,7 +853,6 @@ const GameContent: React.FC = () => {
     setAppState(AppState.GENERATING);
     setRecordingStatus({ isRecording: false });
     
-    // --- FIX AUDIO: Warmup síncrono del AudioContext ---
     if (audioRef.current) {
       if (audioRef.current.src) audioRef.current.load();
       setupAudioGraph();
@@ -878,7 +860,6 @@ const GameContent: React.FC = () => {
         audioContextRef.current.resume().catch(() => {});
       }
     }
-    // ---------------------------------------------------
 
     try {
       let url: string;
@@ -895,7 +876,6 @@ const GameContent: React.FC = () => {
       if (!isMountedRef.current || myToken !== generationTokenRef.current) return;
       
       const optimizedSprite = prepareSpriteSource(img);
-      setSpritesheetUrl(url); 
       spritesheetRef.current = optimizedSprite;
       
       if (canvasRef.current) {
@@ -993,7 +973,7 @@ const GameContent: React.FC = () => {
 
   },[]);
 
-  const animate = useCallback(() => {
+  const animate = useCallback(function loop() {
     if (appState !== AppState.PLAYING || !timelineRef.current || !canvasRef.current || !spritesheetRef.current) return;
 
     const targetLayout = isMobileVertical ? 1 : 0;
@@ -1053,9 +1033,6 @@ const GameContent: React.FC = () => {
     
     if (!rendererRef.current) return;
 
-    // =========================================================================
-    //  FASE 1: RENDERIZADO PARA GRABACIÓN (LOOKAHEAD / FUTURO)
-    // =========================================================================
     if (isRecordingActiveRef.current) {
         const recordingTimeMs = recordingBaseTimeMs + RECORDING_VIDEO_LAG_MS;
         
@@ -1088,10 +1065,6 @@ const GameContent: React.FC = () => {
         }
     }
 
-    // =========================================================================
-    //  FASE 2: RENDERIZADO PARA PANTALLA (PRESENTE)
-    // =========================================================================
-
     if (visualTimeMs < offsetMs) {
       if (!isInIntro) setIsInIntro(true);
       const timeRemaining = offsetMs - visualTimeMs;
@@ -1100,18 +1073,16 @@ const GameContent: React.FC = () => {
       
       if (nextText !== introText) setIntroText(nextText);
       
-      let introStateOverride: Partial<GameState> | null = null;
       if (timeRemaining <= CELL_LABEL_DURATION_MS) {
         const timeSinceWindowStart = CELL_LABEL_DURATION_MS - timeRemaining;
         const alpha = CELL_LABEL_FADE_IN_MS > 0 ? Math.min(1, Math.max(0, timeSinceWindowStart / CELL_LABEL_FADE_IN_MS)) : 1;
-        introStateOverride = { currentPattern: timelineRef.current.rounds[0].pattern, showCellLabels: true, cellLabelsAlpha: alpha, roundNumber: 1 };
         setUiOverlayState({ show: true, alpha, pattern: timelineRef.current.rounds[0].pattern });
       } else { setUiOverlayState(prev => prev.show ? { ...prev, show: false } : prev); }
 
       rendererRef.current.render(canvasRef.current.width, canvasRef.current.height, timelineRef.current.rounds[0].pattern, timelineRef.current.rounds[0].pattern, 0, 0, -1);
       
       projectToViewCanvas(layoutAnim.current);
-      requestRef.current = requestAnimationFrame(animate);
+      requestRef.current = requestAnimationFrame(loop);
       return;
     }
 
@@ -1120,12 +1091,11 @@ const GameContent: React.FC = () => {
     engineStateRef.current = getGameStateAtTime(gameTimeMs, timelineRef.current, engineStateRef.current);
     const state = engineStateRef.current;
 
-    if (state.roundNumber !== uiRoundInfo.round) setUiRoundInfo({ round: state.roundNumber, beat: 0 });
+    if (state.roundNumber !== uiRoundInfo.round) setUiRoundInfo(prev => ({ ...prev, round: state.roundNumber, beat: 0 }));
     if (state.showCellLabels !== uiOverlayState.show || Math.abs(state.cellLabelsAlpha - uiOverlayState.alpha) > 0.05) {
         setUiOverlayState({ show: state.showCellLabels, alpha: state.cellLabelsAlpha, pattern: state.currentPattern });
     }
 
-    // --- STOP ANTICIPADO (-1s) ---
     if (
       isRecordingActiveRef.current &&
       recordingStartedRef.current &&
@@ -1137,7 +1107,6 @@ const GameContent: React.FC = () => {
       if (gameTimeMs >= Math.max(0, totalGameMs - RECORDING_TRIM_END_MS)) {
         recordingStoppedRef.current = true;
 
-        // "Último frame" consistente antes de parar
         const finalRecTime = recordingBaseTimeMs + RECORDING_VIDEO_LAG_MS;
         rendererRef.current.render(
           canvasRef.current.width,
@@ -1166,9 +1135,11 @@ const GameContent: React.FC = () => {
               });
             })
             .catch(() => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               setRecordingStatus({ isRecording: false, error: 'Error guardando video.' } as any);
             });
         } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           setRecordingStatus((s: any) => ({ ...s, isRecording: false }));
         }
       }
@@ -1181,7 +1152,6 @@ const GameContent: React.FC = () => {
           audioRef.current.removeEventListener("playing", performAudioLock);
       }
       
-      // Stop de emergencia (solo si no se paró antes)
       if (isRecordingActiveRef.current && !recordingStoppedRef.current) {
           const finalRecTime = recordingBaseTimeMs + RECORDING_VIDEO_LAG_MS;
           rendererRef.current.render(canvasRef.current.width, canvasRef.current.height, state.currentPattern, state.prevPattern, state.interpolation, 0, -1);
@@ -1192,10 +1162,10 @@ const GameContent: React.FC = () => {
           if (activeRecorder) {
               activeRecorder.stopRecording()
                 .then((r: RecordingResult) => setRecordingStatus({ isRecording: false, recordedUrl: r.url, recordedBlob: r.blob, mimeType: r.mimeType }))
-                .catch(() => setRecordingStatus({ isRecording: false, error: 'Error guardando video.' }));
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .catch(() => setRecordingStatus({ isRecording: false, error: 'Error guardando video.' } as any));
           }
       } else if (!recordingStoppedRef.current) { 
-          // Si no estaba grabando o ya paró por otra razón, solo limpiar status
           setRecordingStatus(s => ({ ...s, isRecording: false })); 
       }
 
@@ -1212,7 +1182,7 @@ const GameContent: React.FC = () => {
 
     projectToViewCanvas(layoutAnim.current);
 
-    requestRef.current = requestAnimationFrame(animate);
+    requestRef.current = requestAnimationFrame(loop);
     
   },[appState, cancelRafIfAny, isInIntro, applyCornerDance, resetCornerTransform, renderCompositeFrame, getReadyText, introText, uiRoundInfo, uiOverlayState, performAudioLock, isMobileVertical, projectToViewCanvas]);
 
@@ -1232,7 +1202,7 @@ const GameContent: React.FC = () => {
   const overlayPaddingX = isMobileVertical ? '5.55%' : '0';
 
   return (
-    <div className="h-[100svh] min-h-[100svh] w-full relative overflow-hidden bg-[#f0f0f0] box-border">
+    <div className="h-svh min-h-svh w-full relative overflow-hidden bg-[#f0f0f0] box-border">
       
       <img 
         src="/images/paper.webp" 
@@ -1245,15 +1215,13 @@ const GameContent: React.FC = () => {
 
       <audio ref={audioRef} preload="none" crossOrigin="anonymous" />
       
-      {/* --- CORNER ELEMENTS --- */}
-      <div ref={cornerTLRef} className="absolute top-2 sm:top-6 left-2 sm:left-6 text-5xl sm:text-7xl drop-shadow-md z-[20] select-none pointer-events-none emoji-safe" style={{ transform: 'translate3d(0, 0, 0) rotate(-15deg) scale(1)' }}>🎉</div>
-      <div ref={cornerTRRef} className="absolute top-2 sm:top-6 right-2 sm:right-6 text-5xl sm:text-7xl drop-shadow-md z-[20] select-none pointer-events-none emoji-safe" style={{ transform: 'translate3d(0, 0, 0) rotate(15deg) scale(1)' }}>🎁</div>
-      <div ref={cornerBLRef} className="absolute bottom-2 sm:bottom-6 left-2 sm:left-6 text-5xl sm:text-7xl drop-shadow-md z-[20] select-none pointer-events-none emoji-safe" style={{ transform: 'translate3d(0, 0, 0) rotate(-10deg) scale(1)' }}>😎</div>
-      <div ref={cornerBRRef} className="absolute bottom-2 sm:bottom-6 right-2 sm:right-6 text-5xl sm:text-7xl drop-shadow-md z-[20] select-none pointer-events-none emoji-safe" style={{ transform: 'translate3d(0, 0, 0) rotate(10deg) scale(1)' }}>🐸</div>
+      <div ref={cornerTLRef} className="absolute top-2 sm:top-6 left-2 sm:left-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe" style={{ transform: 'translate3d(0, 0, 0) rotate(-15deg) scale(1)' }}>🎉</div>
+      <div ref={cornerTRRef} className="absolute top-2 sm:top-6 right-2 sm:right-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe" style={{ transform: 'translate3d(0, 0, 0) rotate(15deg) scale(1)' }}>🎁</div>
+      <div ref={cornerBLRef} className="absolute bottom-2 sm:bottom-6 left-2 sm:left-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe" style={{ transform: 'translate3d(0, 0, 0) rotate(-10deg) scale(1)' }}>😎</div>
+      <div ref={cornerBRRef} className="absolute bottom-2 sm:bottom-6 right-2 sm:right-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe" style={{ transform: 'translate3d(0, 0, 0) rotate(10deg) scale(1)' }}>🐸</div>
 
-      {/* --- MOBILE VERTICAL TOGGLE SWITCH --- */}
       {appState === AppState.PLAYING && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] md:hidden portrait:block landscape:hidden">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-100 md:hidden portrait:block landscape:hidden">
           <button 
             onClick={() => setIsMobileVertical(prev => !prev)}
             aria-label={isMobileVertical ? "Switch to Horizontal View" : "Switch to Vertical View"}
@@ -1277,15 +1245,15 @@ const GameContent: React.FC = () => {
       <div className={`absolute inset-0 z-30 w-full h-full overflow-y-scroll overflow-x-hidden no-scrollbar layer-transition ${showMenu ? 'visible-layer' : 'hidden-layer'}`}>
         <div className="min-h-full w-full flex flex-col items-center justify-center py-8 px-4 relative">
           {showMenu && (
-            <div ref={langRef} className="absolute top-4 left-1/2 -translate-x-1/2 z-[50] w-auto">
+            <div ref={langRef} className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-auto">
               <button type="button" onClick={() => setLangOpen((v) => !v)} className={`relative flex items-center gap-3 bg-white border-[3px] border-black px-4 py-1.5 pr-10 font-black text-black uppercase text-xs md:text-sm tracking-widest cursor-pointer rounded-lg select-none transition-all duration-200 ease-out hover:bg-[#ffd500] ${langOpen ? "translate-y-0.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-[#ffe600]" : "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"}`}>
                 <span className="text-black">{LOCALE_LABELS[currentLocale]}</span>
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-black"><svg className={`w-4 h-4 transition-transform duration-300 ${langOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M19 9l-7 7-7-7" /></svg></span>
               </button>
               {shouldRender && (
-                <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 p-3 bg-white border-[3px] border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] origin-top transition-all grid grid-flow-col gap-2 grid-rows-8 grid-cols-2 w-[90vw] max-w-[24rem] md:grid-rows-5 md:grid-cols-3 md:w-[36rem] md:max-w-none ${isVisible ? "opacity-100 scale-100 translate-y-0 duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)]" : "opacity-0 scale-90 -translate-y-4 duration-300 ease-in"}`}>
+                <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 p-3 bg-white border-3 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] origin-top transition-all grid grid-flow-col gap-2 grid-rows-8 grid-cols-2 w-[90vw] max-w-[24rem] md:grid-rows-5 md:grid-cols-3 md:w-xl md:max-w-none ${isVisible ? "opacity-100 scale-100 translate-y-0 duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)]" : "opacity-0 scale-90 -translate-y-4 duration-300 ease-in"}`}>
                   {LOCALE_MENU.map((locale) => (
-                    <button key={locale} type="button" onClick={() => handleLanguageChange(locale)} className={`w-full text-center md:text-left px-1 py-2 md:px-3 md:py-2.5 font-black text-black text-[10px] md:text-xs tracking-tighter uppercase border-[2px] md:border-[3px] border-black rounded-lg transition-all duration-75 truncate ${currentLocale === locale ? "bg-[#ffe600] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] translate-y-0.5" : "bg-white hover:bg-[#f0f0f0] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5"}`}>
+                    <button key={locale} type="button" onClick={() => handleLanguageChange(locale)} className={`w-full text-center md:text-left px-1 py-2 md:px-3 md:py-2.5 font-black text-black text-[10px] md:text-xs tracking-tighter uppercase border-2 md:border-3 border-black rounded-lg transition-all duration-75 truncate ${currentLocale === locale ? "bg-[#ffe600] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] translate-y-0.5" : "bg-white hover:bg-[#f0f0f0] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5"}`}>
                       <span className="block truncate">{LOCALE_LABELS[locale]}</span>
                     </button>
                   ))}
@@ -1294,7 +1262,7 @@ const GameContent: React.FC = () => {
             </div>
           )}
 
-          <div className="relative z-30 flex flex-col items-center gap-4 md:gap-8 text-center p-5 md:p-8 bg-white rounded-3xl border-[4px] md:border-[6px] border-black hard-shadow w-full max-w-2xl">
+          <div className="relative z-30 flex flex-col items-center gap-4 md:gap-8 text-center p-5 md:p-8 bg-white rounded-3xl border-4 md:border-6 border-black hard-shadow w-full max-w-2xl">
             <div className="flex items-center justify-between w-full gap-2 md:gap-4 mb-2 md:mb-0">
               <NavArrow direction="left" onClick={handlePrevPreset} disabled={isGenerating} ariaLabel={t('nav.prevPresetAria')} />
               <div className="flex flex-col gap-1 items-center transform -rotate-2 mx-auto">
@@ -1320,7 +1288,7 @@ const GameContent: React.FC = () => {
       </div>
 
       {appState === AppState.FINISHED && (
-        <div className="fixed inset-0 z-[999] w-full h-full overflow-y-scroll no-scrollbar animate-flash-overlay backdrop-blur-md flex items-center justify-center">
+        <div className="fixed inset-0 z-999 w-full h-full overflow-y-scroll no-scrollbar animate-flash-overlay backdrop-blur-md flex items-center justify-center">
            <div className="min-h-full w-full flex flex-col items-center justify-center p-4 md:p-8">
             <div className="relative bg-white p-5 md:p-8 border-[6px] border-black hard-shadow flex flex-col items-center gap-6 max-w-4xl w-full box-border animate-slam origin-center">
               <h2 className="text-4xl md:text-6xl font-black text-black uppercase tracking-tighter transform -rotate-2 text-center leading-none mt-2 animate-delay-1">{t('end.title')}</h2>
@@ -1367,14 +1335,13 @@ const GameContent: React.FC = () => {
       <div className={`absolute inset-0 flex flex-col items-center justify-center p-4 layer-transition ${showGame ? 'visible-layer' : 'hidden-layer'}`}>
         {appState === AppState.PLAYING && isInIntro && (
           <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none px-4">
-            <h1 key={introText} className="w-full text-center break-words leading-[0.85] text-[14vw] lg:text-[12rem] font-black text-black tracking-tighter animate-bounce drop-shadow-xl select-none" style={{ fontFamily: "'Montserrat', sans-serif", textShadow: "4px 4px 0px #fff, 8px 8px 0px rgba(0,0,0,0.15)", maxWidth: "100%", wordSpacing: "0.1em" }}>{introText}</h1>
+            <h1 key={introText} className="w-full text-center wrap-break-word leading-[0.85] text-[14vw] lg:text-[12rem] font-black text-black tracking-tighter animate-bounce drop-shadow-xl select-none" style={{ fontFamily: "'Montserrat', sans-serif", textShadow: "4px 4px 0px #fff, 8px 8px 0px rgba(0,0,0,0.15)", maxWidth: "100%", wordSpacing: "0.1em" }}>{introText}</h1>
           </div>
         )}
-        {appState === AppState.PLAYING && !isInIntro && timelineRef.current && (
-            <HUD round={uiRoundInfo.round} beat={uiRoundInfo.beat} totalBeats={timelineRef.current.totalBeats} words={words} />
+        {appState === AppState.PLAYING && !isInIntro && (
+            <HUD round={uiRoundInfo.round} beat={uiRoundInfo.beat} totalBeats={uiRoundInfo.totalBeats} words={words} />
         )}
         
-        {/* --- GAME CANVAS CONTAINER SINCRONIZADO --- */}
         <div className="relative w-full h-[85svh] max-h-[85svh] flex items-center justify-center z-10 pointer-events-none">
           <div 
             ref={canvasContainerRef}
@@ -1391,7 +1358,7 @@ const GameContent: React.FC = () => {
             />
             {shouldRenderOverlay && (
               <div 
-                className="absolute inset-0 z-[60]" 
+                className="absolute inset-0 z-60" 
                 style={{ 
                   display: 'grid', 
                   gridTemplateColumns: `repeat(${overlayCols}, 1fr)`, 

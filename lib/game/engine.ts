@@ -46,7 +46,6 @@ export const createTimeline = (settings: GameSettings): GameTimeline => {
   };
 };
 
-// Objeto reutilizable por defecto para evitar allocations si no se pasa uno
 const DEFAULT_GAME_STATE: GameState = {
     currentBeat: 0,
     beatIndex: 0,
@@ -64,7 +63,7 @@ const DEFAULT_GAME_STATE: GameState = {
 export const getGameStateAtTime = (
   timeMs: number,
   timeline: GameTimeline,
-  reuseResultObj?: GameState // CRÍTICO: Permitir reutilización de memoria
+  reuseResultObj?: GameState
 ): GameState => {
   const result: GameState = reuseResultObj || { ...DEFAULT_GAME_STATE };
 
@@ -77,7 +76,6 @@ export const getGameStateAtTime = (
 
   const currentBeat = timeMs / msPerBeat;
   
-  // Si el tiempo es negativo (intro), resetear
   if (currentBeat < 0) {
      Object.assign(result, DEFAULT_GAME_STATE);
      return result;
@@ -101,7 +99,6 @@ export const getGameStateAtTime = (
   const currentRound = timeline.rounds[safeRoundIdx];
   const nextRound = (safeRoundIdx + 1) < timeline.rounds.length ? timeline.rounds[safeRoundIdx + 1] : currentRound;
 
-  // --- LOGICA DE CAMBIO DE PATRÓN ---
   const PATTERN_SWITCH_BEAT = ACTIVE_BEATS + 1;
   const transitionBeats = currentRound.transitionInBeats ?? TRANSITION_BEATS;
   const safeTransitionBeats = Math.max(0, transitionBeats);
@@ -112,7 +109,6 @@ export const getGameStateAtTime = (
   let prevPattern = currentRound.pattern;
   let roundNumber = currentRound.roundNumber;
 
-  // Lógica de transición optimizada
   if (safeTransitionBeats > 0 && roundBeatOffset >= transitionStart && roundBeatOffset < PATTERN_SWITCH_BEAT) {
     const progress = (roundBeatOffset - transitionStart) / safeTransitionBeats;
     interpolation = 1 - clamp01(progress);
@@ -126,7 +122,6 @@ export const getGameStateAtTime = (
     roundNumber = nextRound.roundNumber;
   }
 
-  // --- LÓGICA DE FASE ACTIVA ---
   let activeCellIndex = -1;
   if (roundBeatOffset < ACTIVE_BEATS) {
     const doubleTimeProgress = (roundBeatOffset * 2) | 0;
@@ -135,7 +130,6 @@ export const getGameStateAtTime = (
     }
   }
 
-  // --- LÓGICA VISUAL DE ETIQUETAS ---
   let showCellLabels = false;
   let cellLabelsAlpha = 0;
 
@@ -156,7 +150,6 @@ export const getGameStateAtTime = (
       }
   }
 
-  // Asignación directa para velocidad
   result.currentBeat = currentBeat;
   result.beatIndex = beatIndex;
   result.roundBeatOffset = roundBeatOffset;

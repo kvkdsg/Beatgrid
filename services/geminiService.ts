@@ -1,9 +1,3 @@
-/**
- * Servicio Cliente para generación de Spritesheets.
- * Delega la petición al servidor seguro, el cual consulta Cloud Storage o Gemini.
- */
-
-// Ahora la respuesta es simple: una URL y un flag informativo
 interface SpritesheetResponse {
   url: string; 
   cached: boolean;
@@ -14,10 +8,8 @@ interface ErrorResponse {
 }
 
 export const generateGameSpritesheet = async (words: string[]): Promise<string> => {
-  // Validación preventiva
   if (!words || words.length !== 4) {
     console.warn("Validación fallida: Se requieren exactamente 4 palabras.");
-    // Fallback de emergencia
     return "/presets/copa-ropa-sopa-loca.webp"; 
   }
 
@@ -35,7 +27,7 @@ export const generateGameSpritesheet = async (words: string[]): Promise<string> 
       try {
         const errorBody = await response.json() as ErrorResponse;
         if (errorBody.error) errorMessage = errorBody.error;
-      } catch {}
+      } catch { /* ignore */ }
       throw new Error(errorMessage);
     }
 
@@ -45,12 +37,10 @@ export const generateGameSpritesheet = async (words: string[]): Promise<string> 
       throw new Error("La respuesta del servidor no contiene una URL válida.");
     }
 
-    // Retornamos directamente la URL (ya sea de GCS o de preset)
     return data.url;
 
   } catch (error) {
     console.error("Error obteniendo spritesheet:", error);
-    // En caso de error total, lanzamos la excepción para que la UI la maneje (reset state)
     throw error;
   }
 };

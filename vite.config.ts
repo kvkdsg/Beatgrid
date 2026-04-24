@@ -8,20 +8,14 @@ import tailwindcss from "@tailwindcss/vite";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// --- PLUGIN: ASYNC CSS LOADING (OPT-IN, NO TOCA CSS CRÍTICO) ---
-// Versión endurecida: SOLO transforma links marcados explícitamente.
-// Motivo: diferir el CSS principal puede aumentar el render delay del LCP.
 const asyncCssPlugin = () => {
   return {
     name: "async-css",
     transformIndexHtml(html: string) {
-      // Match robusto: captura <link ... rel="stylesheet" ...>
       return html.replace(/<link\b[^>]*\brel=["']stylesheet["'][^>]*>/gi, (tag) => {
-        // OPT-IN: solo links que incluyan data-async (ej: <link rel="stylesheet" href="..." data-async>)
         const isOptIn = /\bdata-async\b/i.test(tag);
         if (!isOptIn) return tag;
 
-        // Extrae href (simple, suficiente para output de Vite)
         const hrefMatch = tag.match(/\bhref=["']([^"']+)["']/i);
         const href = hrefMatch?.[1];
         if (!href) return tag;
@@ -39,9 +33,8 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    asyncCssPlugin(), // <--- INYECTADO: Solución Render Blocking (opt-in)
+    asyncCssPlugin(), 
     VitePWA({
-      // Manual: el plugin NO inyecta registro; tú registras el SW con la API nativa.
       injectRegister: null,
 
       registerType: "autoUpdate",
@@ -106,24 +99,20 @@ export default defineConfig({
     target: "es2020",
     sourcemap: false,
     cssCodeSplit: true,
-    assetsInlineLimit: 0, // CRÍTICO: Evita base64 inlining, fuerza archivos cacheables.
-    minify: "esbuild", // Más rápido y eficiente que terser por defecto.
+    assetsInlineLimit: 0, 
+    minify: "esbuild", 
     rollupOptions: {
       output: {
         manualChunks: (id) => {
           if (id.includes("node_modules")) {
-            // OPTIMIZACIÓN MAIN THREAD: Separar react-dom (pesado) del core.
             if (id.includes("react-dom")) return "vendor-react-dom";
             if (id.includes("react")) return "vendor-react-core";
             if (id.includes("scheduler")) return "vendor-react-scheduler";
 
-            // i18n aislado
             if (id.includes("i18next")) return "vendor-i18n";
 
-            // Media libs pesadas
             if (id.includes("ffmpeg") || id.includes("webm") || id.includes("sharp")) return "vendor-media";
 
-            // Resto de utilidades
             return "vendor-utils";
           }
         },

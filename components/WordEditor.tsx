@@ -6,14 +6,6 @@ interface WordEditorProps {
   setWords: (words: string[]) => void;
   onGenerate: () => void;
   disabled?: boolean;
-
-  /**
-   * Flag opcional (recomendado) para indicar que la generación actual es
-   * realmente con Gemini (y no un preset/cache).
-   *
-   * - Si es true y disabled es true -> se muestra ETA 6s (barrido + contador).
-   * - Si no se pasa -> comportamiento idéntico al actual (sin ETA).
-   */
   isGeminiGenerating?: boolean;
 }
 
@@ -35,21 +27,14 @@ const WordEditor: React.FC<WordEditorProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  // "loading" viene del padre (AppState.GENERATING) a través de disabled.
   const isLoading = !!disabled;
-
-  // Form inválido: faltan palabras => aquí sí usamos disabled HTML real.
   const isFormInvalid = useMemo(() => {
     return words.some((w) => !w.trim());
   }, [words]);
 
-  // Solo mostramos ETA si está cargando y sabemos que es Gemini.
   const showEta = isLoading && !!isGeminiGenerating;
 
-  // Forzar reinicio de la animación CSS (key incrementa => remonta el span overlay).
-  const [genCycle, setGenCycle] = useState(0);
-
-  // Contador visual (6..1). Se actualiza como máximo 6 veces (1 por segundo).
+  const[genCycle, setGenCycle] = useState(0);
   const [etaSec, setEtaSec] = useState<number | null>(null);
 
   const handleChange = (index: number, value: string) => {
@@ -60,6 +45,7 @@ const WordEditor: React.FC<WordEditorProps> = ({
 
   useEffect(() => {
     if (!showEta) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEtaSec(null);
       return;
     }
@@ -73,7 +59,6 @@ const WordEditor: React.FC<WordEditorProps> = ({
       const elapsed = performance.now() - start;
       const remaining = Math.max(0, ETA_MS - elapsed);
 
-      // 6..1 (sin 0 para evitar parpadeo al completar)
       const sec = Math.max(0, Math.ceil(remaining / 1000));
 
       if (sec !== lastSec) {
@@ -85,7 +70,6 @@ const WordEditor: React.FC<WordEditorProps> = ({
     };
 
     tick();
-    // Interval “suave”: bajo coste; el estado solo se actualiza cuando cambia el segundo.
     const id = window.setInterval(tick, 120);
 
     return () => window.clearInterval(id);
@@ -103,7 +87,6 @@ const WordEditor: React.FC<WordEditorProps> = ({
               flex flex-col justify-between
               ${ACCENT_COLORS[i]}`}
           >
-            {/* CAMBIO APLICADO: 'justify-end' cambiado a 'justify-start' */}
             <div className="flex justify-start mb-0">
               <span className="text-[10px] md:text-xs font-black text-white bg-black px-1.5 py-0.5 tracking-widest border-2 border-transparent">
                 {i + 1}/4
@@ -129,19 +112,15 @@ const WordEditor: React.FC<WordEditorProps> = ({
       <button
         type="button"
         onClick={() => {
-          // Bloqueo funcional en "loading" aunque NO usemos disabled HTML.
           if (isLoading || isFormInvalid) return;
           onGenerate();
         }}
-        // Disabled HTML SOLO si el formulario es inválido.
         disabled={isFormInvalid}
-        // Estado accesible de bloqueo durante loading (sin apagar estilos por UA).
         aria-disabled={isLoading || isFormInvalid}
         aria-busy={isLoading ? true : undefined}
         className={`relative overflow-hidden w-full rounded-xl py-3 md:py-5 px-4 md:px-8 text-lg md:text-2xl font-black tracking-tight uppercase transition-all border-4 border-black
           ${isFormInvalid ? 'opacity-50 cursor-not-allowed' : isLoading ? 'cursor-not-allowed' : ''}`}
         style={{
-          // En loading mantenemos el amarillo para preservar contraste de la animación.
           background: isFormInvalid ? '#e5e7eb' : '#ffe600',
           color: isFormInvalid ? '#9ca3af' : '#000000',
           boxShadow: isFormInvalid ? 'none' : '4px 4px 0px 0px rgba(0,0,0,1)',
@@ -149,7 +128,6 @@ const WordEditor: React.FC<WordEditorProps> = ({
           fontFamily: "'Montserrat', sans-serif",
         }}
       >
-        {/* Barrido de 6s (solo Gemini) */}
         {showEta && (
           <span
             key={genCycle}
@@ -158,11 +136,9 @@ const WordEditor: React.FC<WordEditorProps> = ({
           />
         )}
 
-        {/* Contenido encima */}
         <span className="relative z-10 flex items-center justify-center gap-3">
           <span>{isLoading ? t('wordEditor.generating') : t('wordEditor.start')}</span>
 
-          {/* Contador a la derecha (solo Gemini) */}
           {showEta && (
             <span className="tabular-nums text-sm md:text-lg font-black opacity-80">
               {etaSec ?? 6}

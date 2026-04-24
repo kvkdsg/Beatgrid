@@ -1,0 +1,154 @@
+substitutions:
+  _REGION: europe-west1
+  _SERVICE_NAME: beat
+  _REPO_NAME: beat
+  _IMAGE_NAME: europe-west1-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}
+  _BASE_URL: https://beat.boton.one
+  _GCS_BUCKET_NAME: botonone
+  _GEMINI_API_SECRET: GEMINIAPIKEY
+
+timeout: 1500s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  # -------------------------------------------------------------------------
+  # 1. QUALITY GATE
+  # -------------------------------------------------------------------------
+  - name: 'node:24.15.0-bookworm-slim'
+    id: 'quality-checks'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+        echo ">>> 1. Preparando entorno..."
+        export CI=true
+        export NODE_ENV=test
+        export BASEURL="${_BASE_URL}"
+
+        corepack enable
+        corepack prepare pnpm@10.33.2 --activate
+
+        pnpm install --frozen-lockfile --ignore-scripts
+
+        echo ">>> 2. Lint..."
+        pnpm lint
+
+        echo ">>> 3. Typecheck..."
+        pnpm typecheck
+
+        echo ">>> 4. Tests con coverage..."
+        pnpm test:coverage
+
+        echo ">>> 5. Verificando build de aplicación..."
+        export NODE_ENV=production
+        pnpm build
+
+        echo "🧹 Limpiando workspace..."
+        rm -rf node_modules .pnpm-store coverage dist .vite
+
+  # -------------------------------------------------------------------------
+  # 2. PULL CACHE DOCKER
+  # -------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'pull-cache'
+    entrypoint: 'bash'
+    args: ['-c', 'docker pull ${_IMAGE_NAME}:latest || true']
+
+  # -------------------------------------------------------------------------
+  # 3. BUILD IMAGEN
+  # -------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'BUILDKIT_INLINE_CACHE=1'
+      - '--cache-from'
+      - '${_IMAGE_NAME}:latest'
+      - '-t'
+      - '${_IMAGE_NAME}:${COMMIT_SHA}'
+      - '-t'
+      - '${_IMAGE_NAME}:latest'
+      - '.'
+    env:
+      - 'DOCKER_BUILDKIT=1'
+
+  # -------------------------------------------------------------------------
+  # 4. PUSH SHA
+  # -------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image-sha'
+    args: ['push', '${_IMAGE_NAME}:${COMMIT_SHA}']
+
+  # -------------------------------------------------------------------------
+  # 5. PUSH LATEST
+  # -------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image-latest'
+    args: ['push', '${_IMAGE_NAME}:latest']
+
+  # -------------------------------------------------------------------------
+  # 6. DEPLOY CLOUD RUN
+  # -------------------------------------------------------------------------
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    id: 'deploy-cloud-run'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image'
+      - '${_IMAGE_NAME}:${COMMIT_SHA}'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+      - '--set-env-vars'
+      - 'NODE_ENV=production,GCSBUCKETNAME=${_GCS_BUCKET_NAME}'
+      - '--set-secrets'
+      - 'GEMINIAPIKEY=${_GEMINI_API_SECRET}:latest'
+      - '--quiet'
+
+  # -------------------------------------------------------------------------
+  # 7. SMOKE TEST
+  # -------------------------------------------------------------------------
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    id: 'smoke-test'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        set -eu
+
+        echo ">>> Iniciando Smoke Test..."
+        SERVICE_URL=$$(gcloud run services describe ${_SERVICE_NAME} --region ${_REGION} --format='value(status.url)')
+        HEALTH_PATH="/healthz"
+
+        echo ">>> Verificando: $${SERVICE_URL}$${HEALTH_PATH}"
+
+        i=0
+        max=12
+        while [ $$i -lt $$max ]; do
+          if curl -fsSL --max-time 20 "$${SERVICE_URL}$${HEALTH_PATH}" > /dev/null; then
+            echo "✅ Smoke Test EXITOSO."
+            exit 0
+          fi
+
+          i=$$((i + 1))
+          sleep_seconds=$$((5 * i))
+          echo "⚠️ Intento $$i/$$max falló; reintentando en $${sleep_seconds}s..."
+          sleep $$sleep_seconds
+        done
+
+        echo "❌ Smoke Test FALLIDO tras $$max intentos."
+        exit 1
+
+images:
+  - '${_IMAGE_NAME}:${COMMIT_SHA}'
+  - '${_IMAGE_NAME}:latest'
