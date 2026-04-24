@@ -33,14 +33,19 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    asyncCssPlugin(), 
+    asyncCssPlugin(),
     VitePWA({
       injectRegister: null,
-
       registerType: "autoUpdate",
       strategies: "generateSW",
       manifestFilename: "manifest.webmanifest",
-      includeAssets: ["favicon.ico", "images/*.jpg", "images/*.webp", "audio/*.opus", "fonts/*.woff2"],
+      includeAssets: [
+        "favicon.ico",
+        "images/*.jpg",
+        "images/*.webp",
+        "audio/*.opus",
+        "fonts/*.woff2",
+      ],
       manifest: {
         id: "beatgrid-game",
         name: "BeatGrid - Say the Word on Beat",
@@ -56,7 +61,12 @@ export default defineConfig({
         icons: [
           { src: "/pwa/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "/pwa/icon-512.png", sizes: "512x512", type: "image/png" },
-          { src: "/pwa/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          {
+            src: "/pwa/icon-512-maskable.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
         ],
       },
       workbox: {
@@ -73,12 +83,14 @@ export default defineConfig({
             handler: "NetworkOnly",
           },
           {
-            urlPattern: ({ url }) => url.pathname === "/robots.txt" || url.pathname === "/sitemap.xml",
+            urlPattern: ({ url }) =>
+              url.pathname === "/robots.txt" || url.pathname === "/sitemap.xml",
             handler: "NetworkOnly",
           },
           {
             urlPattern: ({ url, request }) =>
-              url.origin === "https://storage.googleapis.com" || request.destination === "image",
+              url.origin === "https://storage.googleapis.com" ||
+              request.destination === "image",
             handler: "StaleWhileRevalidate",
             options: {
               cacheName: "images-cache",
@@ -92,31 +104,21 @@ export default defineConfig({
       },
     }),
   ],
-  resolve: { alias: { "@": path.resolve(__dirname, ".") } },
-  server: { port: 3000, host: "0.0.0.0" },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "."),
+    },
+  },
+  server: {
+    port: 3000,
+    host: "0.0.0.0",
+  },
   build: {
     outDir: "dist",
     target: "es2020",
     sourcemap: false,
     cssCodeSplit: true,
-    assetsInlineLimit: 0, 
-    minify: "esbuild", 
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          if (id.includes("node_modules")) {
-            if (id.includes("react-dom")) return "vendor-react-dom";
-            if (id.includes("react")) return "vendor-react-core";
-            if (id.includes("scheduler")) return "vendor-react-scheduler";
-
-            if (id.includes("i18next")) return "vendor-i18n";
-
-            if (id.includes("ffmpeg") || id.includes("webm") || id.includes("sharp")) return "vendor-media";
-
-            return "vendor-utils";
-          }
-        },
-      },
-    },
+    assetsInlineLimit: 0,
+    minify: "esbuild",
   },
 });
