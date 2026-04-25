@@ -271,7 +271,7 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
         `Style: Professional product photography, white background.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-image",
+        model: "gemini-3.1-flash-image-preview",
         contents: [{ parts: [{ text: prompt }] }],
         config: { imageConfig: { aspectRatio: "1:1" } },
       });
