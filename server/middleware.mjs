@@ -11,16 +11,20 @@ import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { Storage } from "@google-cloud/storage";
 import { getSeoData } from "./seo-content.mjs";
-
 import sharp from "sharp";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const GCS_BUCKET_NAME = process.env.GCS_BUCKET_NAME || "botonone";
+const GCS_BUCKET_NAME =
+  process.env.GCSBUCKETNAME ||
+  process.env.GCS_BUCKET_NAME ||
+  "botonone-gen";
+
 const storage = new Storage();
 const BASE_URL = "https://beat.boton.one";
-const SUPPORTED_LOCALES =[
+
+const SUPPORTED_LOCALES = [
   "en",
   "es",
   "pt-BR",
@@ -37,9 +41,12 @@ const SUPPORTED_LOCALES =[
   "th",
   "vi",
 ];
-const DEFAULT_LOCALE = "en";
 
+const DEFAULT_LOCALE = "en";
 const WEBP_OPTIONS = { quality: 85, effort: 4, smartSubsample: true };
+const IMMUTABLE_1Y = "public, max-age=31536000, immutable";
+const DEFAULT_BOOT_WORDS = ["Beat", "Flow", "Grid", "Play"];
+const VALID_WORD_REGEX = /^[\p{L}\p{N}\p{M}\s-]+$/u;
 
 const escapeHtml = (unsafe) => {
   return String(unsafe ?? "")
@@ -55,14 +62,10 @@ const buildSafeUrl = (p) => encodeURI(`${BASE_URL}${p}`);
 function normalizeWord(s) {
   return String(s ?? "").trim().toLowerCase().normalize("NFC");
 }
-const VALID_WORD_REGEX = /^[\p{L}\p{N}\p{M}\s-]+$/u;
+
 function getCacheKey(wordsArray) {
   return crypto.createHash("md5").update(wordsArray.join("|")).digest("hex");
 }
-
-const IMMUTABLE_1Y = "public, max-age=31536000, immutable";
-
-const DEFAULT_BOOT_WORDS = ["Beat", "Flow", "Grid", "Play"];
 
 function parseShareSlugToWordsArray(slug) {
   const raw = String(slug ?? "").trim();
@@ -91,7 +94,9 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
 
   try {
     const indexPath = path.join(distDir, "index.html");
-    if (fs.existsSync(indexPath)) indexTemplate = fs.readFileSync(indexPath, "utf-8");
+    if (fs.existsSync(indexPath)) {
+      indexTemplate = fs.readFileSync(indexPath, "utf-8");
+    }
   } catch (e) {
     console.error("❌ [Server] Failed to load index.html template:", e);
   }
@@ -117,16 +122,16 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
         directives: {
           defaultSrc: ["'self'"],
           baseUri: ["'self'"],
-          imgSrc:["'self'", "data:", "blob:", "https:", "https://storage.googleapis.com"],
+          imgSrc: ["'self'", "data:", "blob:", "https:", "https://storage.googleapis.com"],
           mediaSrc: ["'self'", "blob:", "https:"],
-          connectSrc:[
+          connectSrc: [
             "'self'",
             "https://generativelanguage.googleapis.com",
             "https://storage.googleapis.com",
           ],
-          scriptSrc:["'self'", "'unsafe-inline'", "https://storage.googleapis.com"],
-          styleSrc:["'self'", "'unsafe-inline'"],
-          fontSrc:["'self'", "data:"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "https://storage.googleapis.com"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          fontSrc: ["'self'", "data:"],
         },
       },
       crossOriginEmbedderPolicy: false,
@@ -137,18 +142,32 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
   app.use(compression({ level: 6 }));
   app.use(express.json({ limit: "64kb" }));
 
-  app.get("/:lang/:file(favicon\\.ico|manifest\\.webmanifest|sw\\.js)", (req, res, next) => {
-    const { lang, file } = req.params;
+  app.get("/:lang/favicon.ico", (req, res, next) => {
+    const { lang } = req.params;
     if (!SUPPORTED_LOCALES.includes(lang)) return next();
-    return res.redirect(301, `/${file}`);
+    return res.redirect(301, "/favicon.ico");
   });
 
-  app.get("/:lang/:kind(assets|fonts|images|audio|locales)/*", (req, res, next) => {
-    const { lang, kind } = req.params;
+  app.get("/:lang/manifest.webmanifest", (req, res, next) => {
+    const { lang } = req.params;
     if (!SUPPORTED_LOCALES.includes(lang)) return next();
-    const rest = req.params[0] || "";
-    return res.redirect(301, `/${kind}/${rest}`);
+    return res.redirect(301, "/manifest.webmanifest");
   });
+
+  app.get("/:lang/sw.js", (req, res, next) => {
+    const { lang } = req.params;
+    if (!SUPPORTED_LOCALES.includes(lang)) return next();
+    return res.redirect(301, "/sw.js");
+  });
+
+  app.get(
+    /^\/(?<lang>[^/]+)\/(?<kind>assets|fonts|images|audio|locales)\/(?<rest>.*)$/u,
+    (req, res, next) => {
+      const { lang, kind, rest } = req.params;
+      if (!SUPPORTED_LOCALES.includes(lang)) return next();
+      return res.redirect(301, `/${kind}/${rest || ""}`);
+    }
+  );
 
   app.get("/healthz", (_, res) => res.send("ok"));
 
@@ -156,10 +175,9 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     const favPath = path.join(distDir, "favicon.ico");
     if (fs.existsSync(favPath)) {
       res.setHeader("Cache-Control", "public, max-age=86400");
-      res.sendFile(favPath);
-    } else {
-      res.status(204).end();
+      return res.sendFile(favPath);
     }
+    return res.status(204).end();
   });
 
   app.get("/sitemap.xml", (_, res) => {
@@ -177,15 +195,13 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
       `<?xml version="1.0" encoding="UTF-8"?>` +
       `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">`;
 
-    xml += `\n  <url><loc>${buildSafeUrl(
-      `/${DEFAULT_LOCALE}`
-    )}</loc><lastmod>${lastMod}</lastmod><priority>1.0</priority>${alternatesBlock}</url>`;
+    xml += `\n  <url><loc>${buildSafeUrl(`/${DEFAULT_LOCALE}`)}</loc><lastmod>${lastMod}</lastmod><priority>1.0</priority>${alternatesBlock}</url>`;
 
-    SUPPORTED_LOCALES.filter((l) => l !== DEFAULT_LOCALE).forEach((lang) => {
-      xml += `\n  <url><loc>${buildSafeUrl(
-        `/${lang}`
-      )}</loc><lastmod>${lastMod}</lastmod><priority>0.8</priority>${alternatesBlock}</url>`;
-    });
+    SUPPORTED_LOCALES
+      .filter((l) => l !== DEFAULT_LOCALE)
+      .forEach((lang) => {
+        xml += `\n  <url><loc>${buildSafeUrl(`/${lang}`)}</loc><lastmod>${lastMod}</lastmod><priority>0.8</priority>${alternatesBlock}</url>`;
+      });
 
     xml += `\n</urlset>`;
     res.send(xml.trim());
@@ -209,6 +225,7 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
       }
 
       const cleaned = words.map(normalizeWord);
+
       for (const w of cleaned) {
         if (!w || w.length < 1 || w.length > 30 || !VALID_WORD_REGEX.test(w)) {
           return res.status(400).json({ error: "Invalid words" });
@@ -218,6 +235,7 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
       const fileHash = getCacheKey(cleaned);
       const fileNameWebp = `sprites/${fileHash}.webp`;
       const fileNamePng = `sprites/${fileHash}.png`;
+
       const bucket = storage.bucket(GCS_BUCKET_NAME);
       const fileWebp = bucket.file(fileNameWebp);
 
@@ -239,7 +257,9 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
       }
 
       const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINIAPIKEY;
-      if (!apiKey) return res.status(500).json({ error: "Configuration Error" });
+      if (!apiKey) {
+        return res.status(500).json({ error: "Configuration Error" });
+      }
 
       const { GoogleGenAI } = await import("@google/genai");
       const ai = new GoogleGenAI({ apiKey });
@@ -257,7 +277,9 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
       });
 
       const part = response?.candidates?.[0]?.content?.parts?.find((p) => p?.inlineData?.data);
-      if (!part?.inlineData?.data) throw new Error("AI Generation Failed");
+      if (!part?.inlineData?.data) {
+        throw new Error("AI Generation Failed");
+      }
 
       const buffer = Buffer.from(part.inlineData.data, "base64");
 
@@ -269,7 +291,10 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
       }
 
       await fileWebp.save(outputBuffer, {
-        metadata: { contentType: "image/webp", cacheControl: IMMUTABLE_1Y },
+        metadata: {
+          contentType: "image/webp",
+          cacheControl: IMMUTABLE_1Y,
+        },
         resumable: false,
       });
 
@@ -302,23 +327,30 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     })
   );
 
-  app.get("/sw.js", (_, r) =>
-    r.sendFile(path.join(distDir, "sw.js"), { headers: { "Cache-Control": "no-cache, must-revalidate" } })
-  );
+  app.get("/sw.js", (_, r) => {
+    return r.sendFile(path.join(distDir, "sw.js"), {
+      headers: { "Cache-Control": "no-cache, must-revalidate" },
+    });
+  });
 
-  app.get("/manifest.webmanifest", (_, r) =>
-    r.sendFile(path.join(distDir, "manifest.webmanifest"), {
-      headers: { "Content-Type": "application/manifest+json", "Cache-Control": "public, max-age=0" },
-    })
-  );
+  app.get("/manifest.webmanifest", (_, r) => {
+    return r.sendFile(path.join(distDir, "manifest.webmanifest"), {
+      headers: {
+        "Content-Type": "application/manifest+json",
+        "Cache-Control": "public, max-age=0",
+      },
+    });
+  });
 
   app.use(express.static(distDir, { index: false, maxAge: "1h" }));
 
-  app.get("*", (req, res) => {
+  app.get(/.*/u, (req, res) => {
     if (!requestAcceptsHtml(req)) return res.status(404).send("Not found");
 
     const urlPath = req.path;
-    if (urlPath.includes(".") && !urlPath.endsWith(".html")) return res.status(404).send("Not found");
+    if (urlPath.includes(".") && !urlPath.endsWith(".html")) {
+      return res.status(404).send("Not found");
+    }
 
     const segments = urlPath.split("/").filter(Boolean);
     const firstSegment = segments[0];
@@ -329,10 +361,12 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
 
     const exactMatch = SUPPORTED_LOCALES.find((l) => l === firstSegment);
     const caseInsensitiveMatch =
-      !exactMatch && SUPPORTED_LOCALES.find((l) => l.toLowerCase() === firstSegment?.toLowerCase());
+      !exactMatch &&
+      SUPPORTED_LOCALES.find((l) => l.toLowerCase() === firstSegment?.toLowerCase());
 
     if (caseInsensitiveMatch) {
-      const newPath = `/${caseInsensitiveMatch}/${segments.slice(1).join("/")}`;
+      const rest = segments.slice(1).join("/");
+      const newPath = rest ? `/${caseInsensitiveMatch}/${rest}` : `/${caseInsensitiveMatch}`;
       const qs = req.url.split("?")[1] ? "?" + req.url.split("?")[1] : "";
       return res.redirect(301, newPath + qs);
     }
@@ -363,9 +397,7 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
         })
         .join("\n    ");
 
-      const xDefaultPath = `/${DEFAULT_LOCALE}${
-        normalizedPathWithoutLang === "/" ? "" : normalizedPathWithoutLang
-      }`;
+      const xDefaultPath = `/${DEFAULT_LOCALE}${normalizedPathWithoutLang === "/" ? "" : normalizedPathWithoutLang}`;
       const xDefault = `<link rel="alternate" hreflang="x-default" href="${buildSafeUrl(xDefaultPath)}" />`;
 
       let rawTitle = seoData.title;
@@ -442,7 +474,7 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     <meta name="keywords" content="${safeKeywords}" />
     <link rel="canonical" href="${canonicalUrl}" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
-    
+
     <meta property="og:title" content="${safeTitle}" />
     <meta property="og:description" content="${safeDesc}" />
     <meta property="og:locale" content="${lang}" />
@@ -450,17 +482,17 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     <meta property="og:url" content="${canonicalUrl}" />
     <meta property="og:image" content="${BASE_URL}/images/og-preview.jpg" />
     <meta property="og:type" content="website" />
-    
+
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${safeTitle}" />
     <meta name="twitter:description" content="${safeDesc}" />
-    
+
     ${hreflangs}
     ${xDefault}
-    
+
     <script type="application/ld+json">${safeWebsiteJsonLd}</script>
     <script type="application/ld+json">${safeGameJsonLd}</script>
-    
+
     <script>window.__BOOT__=${safeBoot};</script>
       `;
 
@@ -478,21 +510,14 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
 
     <audio preload="none" crossorigin="anonymous"></audio>
 
-    <!-- CORNER ELEMENTS -->
-    <div class="absolute top-2 sm:top-6 left-2 sm:left-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe"
-         style="transform: translate3d(0,0,0) rotate(-15deg) scale(1);">🍀</div>
-    <div class="absolute top-2 sm:top-6 right-2 sm:right-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe"
-         style="transform: translate3d(0,0,0) rotate(15deg) scale(1);">⚡</div>
-    <div class="absolute bottom-2 sm:bottom-6 left-2 sm:left-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe"
-         style="transform: translate3d(0,0,0) rotate(-10deg) scale(1);">🔥</div>
-    <div class="absolute bottom-2 sm:bottom-6 right-2 sm:right-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe"
-         style="transform: translate3d(0,0,0) rotate(10deg) scale(1);">🎧</div>
+    <div class="absolute top-2 sm:top-6 left-2 sm:left-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe" style="transform: translate3d(0,0,0) rotate(-15deg) scale(1);">🍀</div>
+    <div class="absolute top-2 sm:top-6 right-2 sm:right-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe" style="transform: translate3d(0,0,0) rotate(15deg) scale(1);">⚡</div>
+    <div class="absolute bottom-2 sm:bottom-6 left-2 sm:left-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe" style="transform: translate3d(0,0,0) rotate(-10deg) scale(1);">🔥</div>
+    <div class="absolute bottom-2 sm:bottom-6 right-2 sm:right-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe" style="transform: translate3d(0,0,0) rotate(10deg) scale(1);">🎧</div>
 
-    <!-- MENU LAYER (showMenu) -->
     <div class="absolute inset-0 z-30 w-full h-full overflow-y-scroll overflow-x-hidden no-scrollbar layer-transition visible-layer">
       <div class="min-h-full w-full flex flex-col items-center justify-center py-8 px-4 relative">
 
-        <!-- Lang button (static, no dropdown logic in SSR) -->
         <div class="absolute top-4 left-12 -translate-x-12 z-50 w-auto">
           <button
             type="button"
@@ -507,15 +532,13 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
           </button>
         </div>
 
-        <!-- Main card -->
         <div class="relative z-30 flex flex-col items-center gap-4 md:gap-8 text-center p-5 md:p-8 bg-white rounded-3xl border-4px md:border-6px border-black hard-shadow w-full max-w-2xl">
           <div class="flex items-center justify-between w-full gap-2 md:gap-4 mb-2 md:mb-0">
             <button
               type="button"
               aria-label="Previous"
               class="group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-4px4px0px0pxrgba(0,0,0,1) shrink-0 rounded-lg transition-all duration-150">
-              <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
-                class="w-5 h-5 md:w-7 md:h-7 text-black transition-transform group-hover:scale-110">
+              <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 md:w-7 md:h-7 text-black transition-transform group-hover:scale-110">
                 <path d="M19 12H5M12 19l-7-7 7-7"></path>
               </svg>
             </button>
@@ -533,14 +556,12 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
               type="button"
               aria-label="Next"
               class="group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-4px4px0px0pxrgba(0,0,0,1) shrink-0 rounded-lg transition-all duration-150">
-              <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
-                class="w-5 h-5 md:w-7 md:h-7 text-black transition-transform group-hover:scale-110 rotate-180">
+              <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 md:w-7 md:h-7 text-black transition-transform group-hover:scale-110 rotate-180">
                 <path d="M19 12H5M12 19l-7-7 7-7"></path>
               </svg>
             </button>
           </div>
 
-          <!-- WordEditor (static skeleton matching structure/classes) -->
           <div class="flex flex-col gap-4 md:gap-6 max-w-3xl w-full">
             <div class="grid grid-cols-2 gap-3 md:gap-6">
               ${bootWords
@@ -577,15 +598,13 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
             </button>
           </div>
 
-          <!-- Recording toggle (static) -->
           <div class="w-full flex items-center justify-between bg-gray-50 border-4 border-black p-3 md:p-4 rounded-xl">
             <div class="flex flex-col items-start text-left">
               <span class="font-black uppercase text-sm md:text-lg text-black">Recording</span>
               <span class="text-10px md:text-xs font-bold text-gray-500 uppercase tracking-wide leading-tight">On</span>
             </div>
             <div class="relative w-12 md:w-16 h-7 md:h-8 rounded-full border-4 border-black bg-00ff99">
-              <div class="absolute top-1/2 -translate-y-1/2 w-5 md:w-6 h-5 md:h-6 bg-white border-2 border-black rounded-full shadow-sm"
-                   style="left: calc(100% - 1.5rem);"></div>
+              <div class="absolute top-1/2 -translate-y-1/2 w-5 md:w-6 h-5 md:h-6 bg-white border-2 border-black rounded-full shadow-sm" style="left: calc(100% - 1.5rem);"></div>
             </div>
           </div>
         </div>
@@ -602,9 +621,7 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
         .replace(/<html[^>]*>/, `<html lang="${lang}" dir="${lang === "ar" ? "rtl" : "ltr"}">`);
 
       res.setHeader("Content-Language", lang);
-
       if (!isLocalizedUrl) res.setHeader("Vary", "Accept-Language");
-
       res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
       return res.status(200).send(finalHtml);
     } catch (e) {
