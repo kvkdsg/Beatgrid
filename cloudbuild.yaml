@@ -128,7 +128,7 @@ steps:
 
         echo ">>> Iniciando Smoke Test..."
         SERVICE_URL=$$(gcloud run services describe ${_SERVICE_NAME} --region ${_REGION} --format='value(status.url)')
-        HEALTH_PATH="/healthz"
+        HEALTH_PATH="/health"
 
         echo ">>> Verificando: $${SERVICE_URL}$${HEALTH_PATH}"
 

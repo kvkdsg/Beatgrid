@@ -111,7 +111,7 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
 
   app.use(
     morgan(":method :url :status :res[content-length] - :response-time ms", {
-      skip: (req) => req.url === "/healthz" || req.url.startsWith("/assets/"),
+      skip: (req) => req.url === "/health" || req.url.startsWith("/assets/"),
     })
   );
 
@@ -169,7 +169,7 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     }
   );
 
-  app.get("/healthz", (_, res) => res.send("ok"));
+  app.get("/health", (_, res) => res.send("ok"));
 
   app.get("/favicon.ico", (_, res) => {
     const favPath = path.join(distDir, "favicon.ico");
@@ -211,7 +211,7 @@ export function createApp({ distDir = path.resolve(__dirname, "../dist") } = {})
     res
       .type("text/plain")
       .send(
-        `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /healthz\n\nSitemap: ${BASE_URL}/sitemap.xml`
+        `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /health\n\nSitemap: ${BASE_URL}/sitemap.xml`
       );
   });
 

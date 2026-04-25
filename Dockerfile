@@ -56,7 +56,7 @@ EXPOSE 8080
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s \
-  CMD curl -f http://127.0.0.1:8080/healthz || exit 1
+  CMD curl -f http://127.0.0.1:8080/health || exit 1
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["node", "server/index.mjs"]
