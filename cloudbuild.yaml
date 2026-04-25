@@ -5,7 +5,7 @@ substitutions:
   _IMAGE_NAME: europe-west1-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}
   _BASE_URL: https://beat.boton.one
   _GCS_BUCKET_NAME: botonone
-  _GEMINI_API_SECRET: GEMINI_API_KEY
+  _GEMINI_API_SECRET: shared-gemini-api-chat
 
 timeout: 1500s
 
