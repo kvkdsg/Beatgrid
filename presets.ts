@@ -1,13 +1,13 @@
-export type Preset = {
+type Preset = {
   id: string;
-  words: [string, string, string, string];
+  words:[string, string, string, string];
   spritesheetUrl: string;
 };
 
-export const PRESETS: Preset[] = [
+export const PRESETS: Preset[] =[
   {
     id: "copa-ropa-sopa-loca",
-    words: ["copa", "ropa", "sopa", "loca"],
+    words:["copa", "ropa", "sopa", "loca"],
     spritesheetUrl: "/presets/copa-ropa-sopa-loca.webp",
   },
   {
@@ -17,12 +17,12 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "puerro-perro-furro-curro",
-    words: ["puerro", "perro", "furro", "curro"],
+    words:["puerro", "perro", "furro", "curro"],
     spritesheetUrl: "/presets/puerro-perro-furro-curro.webp",
   },
   {
     id: "globo-lobo-cloro-loro",
-    words: ["globo", "lobo", "cloro", "loro"],
+    words:["globo", "lobo", "cloro", "loro"],
     spritesheetUrl: "/presets/globo-lobo-cloro-loro.webp",
   },
   {
@@ -37,7 +37,7 @@ export const PRESETS: Preset[] = [
   },
 ];
 
-export const normalizeWord = (s: string) =>
+const normalizeWord = (s: string) =>
   s.trim().toLowerCase().normalize("NFC");
 
 export const wordsKey = (words: string[]) =>
@@ -48,21 +48,3 @@ const PRESET_BY_KEY = new Map(PRESETS.map((p) => [wordsKey(p.words), p]));
 export const findPreset = (words: string[]) => PRESET_BY_KEY.get(wordsKey(words));
 
 export const pickRandomPreset = () => PRESETS[Math.floor(Math.random() * PRESETS.length)];
-
-const getCurrentIndex = (words: string[]) => {
-  const currentKey = wordsKey(words);
-  return PRESETS.findIndex(p => wordsKey(p.words) === currentKey);
-};
-
-export const getNextPreset = (currentWords: string[]): string[] => {
-  const index = getCurrentIndex(currentWords);
-  const nextIndex = (index + 1) % PRESETS.length;
-  return [...PRESETS[nextIndex].words];
-};
-
-export const getPrevPreset = (currentWords: string[]): string[] => {
-  const index = getCurrentIndex(currentWords);
-  const prevIndex = (index - 1 + PRESETS.length) % PRESETS.length; 
-  const safeIndex = index === -1 ? PRESETS.length - 1 : prevIndex;
-  return [...PRESETS[safeIndex].words];
-};

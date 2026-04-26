@@ -1,7 +1,3 @@
-// src/types.ts
-
-export type QuadrantIndex = 0 | 1 | 2 | 3;
-
 export type BoardState = readonly number[]; 
 
 export interface GameSettings {
@@ -28,7 +24,6 @@ export interface GameTimeline {
 export enum AppState {
   IDLE = 'idle',
   GENERATING = 'generating',
-  READY = 'ready',
   PLAYING = 'playing',
   FINISHED = 'finished'
 }
