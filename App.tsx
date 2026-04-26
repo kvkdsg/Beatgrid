@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, useReducer } from 'react';
 import {
   BrowserRouter,
   Routes,
@@ -54,11 +54,12 @@ const textMetricsCache = new Map<string, number>();
 
 const VIDEO_WIDTH = 1280;
 const VIDEO_HEIGHT = 720;
-
 const BASE_W = 1600;
 const BASE_H = 800;
 const VERTICAL_W = 900;
 const VERTICAL_H = 1600;
+
+const CELL_IDS =['cell-0', 'cell-1', 'cell-2', 'cell-3', 'cell-4', 'cell-5', 'cell-6', 'cell-7'];
 
 const LOCALE_LABELS: Record<AppLocale, string> = {
   en: "English", es: "Español", "pt-BR": "Português (Brasil)", fr: "Français", de: "Deutsch",
@@ -74,6 +75,7 @@ const LOCALE_MENU: AppLocale[] =[
 
 const NavArrow: React.FC<{ direction: 'left' | 'right'; onClick: () => void; disabled?: boolean; ariaLabel: string }> = ({ direction, onClick, disabled, ariaLabel }) => (
   <button
+    type="button"
     onClick={onClick}
     disabled={disabled}
     className={`group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] shrink-0 rounded-lg transition-all duration-150 ${disabled ? 'opacity-50 cursor-not-allowed shadow-none transform-none' : 'hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'}`}
@@ -86,18 +88,143 @@ const NavArrow: React.FC<{ direction: 'left' | 'right'; onClick: () => void; dis
   </button>
 );
 
+const LanguageMenu: React.FC<{ currentLocale: AppLocale, onLanguageChange: (l: AppLocale) => void }> = ({ currentLocale, onLanguageChange }) => {
+  const[langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => { if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLangOpen(false); };
+    document.addEventListener('mousedown', onDown); 
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  },[]);
+
+  return (
+    <div ref={langRef} className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-auto">
+      <button 
+        type="button" 
+        aria-haspopup="menu"
+        aria-expanded={langOpen}
+        onClick={() => setLangOpen((v) => !v)} 
+        className={`relative flex items-center gap-3 bg-white border-[3px] border-black px-4 py-1.5 pr-10 font-black text-black uppercase text-xs md:text-sm tracking-widest cursor-pointer rounded-lg select-none transition-all duration-200 ease-out hover:bg-[#ffd500] ${langOpen ? "translate-y-0.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-[#ffe600]" : "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"}`}>
+        <span className="text-black">{LOCALE_LABELS[currentLocale]}</span>
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-black">
+          <svg className={`w-4 h-4 transition-transform duration-300 ${langOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M19 9l-7 7-7-7" /></svg>
+        </span>
+      </button>
+      
+      <div 
+        role="menu"
+        aria-hidden={!langOpen}
+        className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 p-3 bg-white border-3 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] origin-top transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] grid grid-flow-col gap-2 grid-rows-8 grid-cols-2 w-[90vw] max-w-[24rem] md:grid-rows-5 md:grid-cols-3 md:w-xl md:max-w-none 
+          ${langOpen ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-95 -translate-y-2 pointer-events-none"}`}
+      >
+        {LOCALE_MENU.map((locale) => (
+          <button 
+            key={locale} 
+            type="button" 
+            role="menuitem"
+            onClick={() => { onLanguageChange(locale); setLangOpen(false); }} 
+            className={`w-full text-center md:text-left px-1 py-2 md:px-3 md:py-2.5 font-black text-black text-[10px] md:text-xs tracking-tighter uppercase border-2 md:border-3 border-black rounded-lg transition-all duration-75 truncate ${currentLocale === locale ? "bg-[#ffe600] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] translate-y-0.5" : "bg-white hover:bg-[#f0f0f0] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5"}`}>
+            <span className="block truncate">{LOCALE_LABELS[locale]}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const RecordingToggle: React.FC<{ enableRecording: boolean; setEnableRecording: (v: boolean) => void; disabled: boolean }> = ({ enableRecording, setEnableRecording, disabled }) => {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => setEnableRecording(!enableRecording)}
+      aria-pressed={enableRecording}
+      className={`w-full flex items-center justify-between border-4 border-black p-3 md:p-4 rounded-xl transition-colors ${enableRecording ? 'bg-green-50' : 'bg-gray-100'} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-200'}`}
+    >
+      <div className="flex flex-col items-start text-left">
+        <span className="font-black uppercase text-sm md:text-lg text-black">{t('recording.title')}</span>
+        <span className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-wide leading-tight">{enableRecording ? t('recording.onHint') : t('recording.offHint')}</span>
+      </div>
+      <div className={`relative w-12 md:w-16 h-7 md:h-8 rounded-full border-4 border-black transition-colors duration-300 ${enableRecording ? 'bg-[#00ff99]' : 'bg-gray-300'}`}>
+        <div className={`absolute top-1/2 -translate-y-1/2 w-5 md:w-6 h-5 md:h-6 bg-white border-2 border-black rounded-full shadow-sm transition-all duration-300 ease-spring ${enableRecording ? 'left-[calc(100%-1.5rem)] md:left-[calc(100%-1.75rem)]' : 'left-0.5 md:left-1'}`} />
+      </div>
+    </button>
+  );
+};
+
+type UiState = {
+  appState: AppStateType;
+  isGeminiGenerating: boolean;
+  isInIntro: boolean;
+  introText: string;
+  uiRoundInfo: { round: number; beat: number; totalBeats: number };
+  uiOverlayState: { show: boolean; alpha: number; pattern: readonly number[] };
+  isMobileVertical: boolean;
+  showGenError: boolean;
+  genErrorClosing: boolean;
+};
+
+const initialUiState: UiState = {
+  appState: AppState.IDLE,
+  isGeminiGenerating: false,
+  isInIntro: false,
+  introText: "",
+  uiRoundInfo: { round: 1, beat: 0, totalBeats: 40 },
+  uiOverlayState: { show: false, alpha: 0, pattern:[] },
+  isMobileVertical: false,
+  showGenError: false,
+  genErrorClosing: false,
+};
+
+type RecState = {
+  enableRecording: boolean;
+  status: RecordingStatus & { error?: string };
+  canShareNative: boolean;
+};
+
+const initialRecState: RecState = {
+  enableRecording: true,
+  status: { isRecording: false },
+  canShareNative: false,
+};
+
+interface IRecordingService {
+  startRecording(args: { canvas: HTMLCanvasElement; audioTrack?: MediaStreamTrack; videoBitsPerSecond: number }): Promise<void>;
+  stopRecording(): Promise<RecordingResult>;
+  cancelRecording(): void;
+}
+
 const GameContent: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { slug } = useParams();
 
-  const[langOpen, setLangOpen] = useState(false);
-  const [shouldRender, setShouldRender] = useState(false);
-  const[isVisible, setIsVisible] = useState(false);
-  const langRef = useRef<HTMLDivElement | null>(null);
+  const [uiState, setUiState] = useReducer(
+    (state: UiState, action: Partial<UiState> | ((prev: UiState) => Partial<UiState> | null)) => {
+      const next = typeof action === 'function' ? action(state) : action;
+      if (!next) return state;
+      let hasChanges = false;
+      for (const key in next) {
+        if (state[key as keyof UiState] !== next[key as keyof UiState]) {
+          hasChanges = true;
+          break;
+        }
+      }
+      return hasChanges ? { ...state, ...next } : state;
+    },
+    initialUiState
+  );
 
-  const[isMobileVertical, setIsMobileVertical] = useState(false);
+  const[recState, setRecState] = useReducer(
+    (state: RecState, action: Partial<RecState>) => ({ ...state, ...action }),
+    initialRecState
+  );
+
   const layoutAnim = useRef(0);
   const lastLayoutProgressRef = useRef<number>(-1);
 
@@ -108,23 +235,12 @@ const GameContent: React.FC = () => {
   useEffect(() => {
     const mediaQuery = window.matchMedia('(orientation: landscape)');
     const handleOrientationChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      if (e.matches) setIsMobileVertical(false);
+      if (e.matches) setUiState({ isMobileVertical: false });
     };
     handleOrientationChange(mediaQuery);
     mediaQuery.addEventListener('change', handleOrientationChange);
     return () => mediaQuery.removeEventListener('change', handleOrientationChange);
   },[]);
-
-  useEffect(() => {
-    if (langOpen) {
-      setShouldRender(true);
-      requestAnimationFrame(() => requestAnimationFrame(() => setIsVisible(true)));
-    } else {
-      setIsVisible(false);
-      const timer = setTimeout(() => setShouldRender(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [langOpen]);
 
   const currentLocale = useMemo(() => 
     toSupportedLocale(i18n.resolvedLanguage ?? i18n.language) ?? DEFAULT_LOCALE,[i18n.resolvedLanguage, i18n.language]
@@ -135,9 +251,6 @@ const GameContent: React.FC = () => {
 
   const parseSlug = (s: string) => s.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1));
 
-  const[appState, setAppState] = useState<AppStateType>(AppState.IDLE);
-  const[isGeminiGenerating, setIsGeminiGenerating] = useState(false);
-
   const[words, setWords] = useState<string[]>(() => {
     if (slug) {
       try {
@@ -145,28 +258,16 @@ const GameContent: React.FC = () => {
         if (decoded.length === 4) return decoded;
       } catch { console.warn("Invalid slug, falling back to preset"); }
     }
-    return[...pickRandomPreset().words];
+    return [...pickRandomPreset().words];
   });
 
   useEffect(() => {
-    if (slug && appState === AppState.IDLE) {
+    if (slug && uiState.appState === AppState.IDLE) {
       const decoded = parseSlug(slug);
       if (decoded.length === 4) setWords(decoded);
     }
-  }, [slug, appState]);
+  },[slug, uiState.appState]);
 
-  const[enableRecording, setEnableRecording] = useState<boolean>(true);
-  const[recordingStatus, setRecordingStatus] = useState<RecordingStatus>({ isRecording: false });
-
-  const[uiRoundInfo, setUiRoundInfo] = useState<{ round: number; beat: number; totalBeats: number }>({ round: 1, beat: 0, totalBeats: 40 });
-  const [uiOverlayState, setUiOverlayState] = useState<{ show: boolean; alpha: number; pattern: readonly number[] }>({ show: false, alpha: 0, pattern:[] });
-  const [introText, setIntroText] = useState("");
-  const[isInIntro, setIsInIntro] = useState(false);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [genErrorOpen, setGenErrorOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const[genErrorClosing, setGenErrorClosing] = useState(false);
   const genErrorAutoCloseTimerRef = useRef<number | null>(null);
   const genErrorFadeTimerRef = useRef<number | null>(null);
 
@@ -176,14 +277,12 @@ const GameContent: React.FC = () => {
 
   const spritesheetRef = useRef<SpriteSource | null>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
-  
   const CanvasRendererClassRef = useRef<typeof CanvasRenderer | null>(null);
 
   const timelineRef = useRef<GameTimeline | null>(null);
   const requestRef = useRef<number | undefined>(undefined);
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recordingServiceRef = useRef<any | null>(null);
+  const recordingServiceRef = useRef<IRecordingService | null>(null);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isMountedRef = useRef(true);
@@ -217,13 +316,11 @@ const GameContent: React.FC = () => {
     videoBitsPerSecond: number;
   } | null>(null);
 
-  const[canShareNative, setCanShareNative] = useState(false);
   const normalizedWords = useMemo(() => (words ??[]).map((w) => String(w ?? '').trim()), [words]);
   const getReadyText = t('intro.getReady');
 
   const handleLanguageChange = async (newLocale: AppLocale) => {
     await setLocale(newLocale);
-    setLangOpen(false);
     const currentPath = location.pathname;
     const segments = currentPath.split('/').filter(Boolean);
     if (segments.length > 0 && LOCALE_MENU.includes(segments[0] as AppLocale)) {
@@ -231,16 +328,8 @@ const GameContent: React.FC = () => {
     } else {
       segments.unshift(newLocale);
     }
-    const newPath = `/${segments.join('/')}`;
-    navigate(newPath);
+    navigate(`/${segments.join('/')}`);
   };
-
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => { if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false); };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLangOpen(false); };
-    document.addEventListener('mousedown', onDown); document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
-  },[]);
 
   const clearGenErrorTimers = useCallback(() => {
     if (genErrorAutoCloseTimerRef.current) clearTimeout(genErrorAutoCloseTimerRef.current);
@@ -248,15 +337,17 @@ const GameContent: React.FC = () => {
   },[]);
 
   const closeGenError = useCallback(() => {
-    setGenErrorClosing(true);
-    genErrorFadeTimerRef.current = window.setTimeout(() => { 
+    setUiState({ genErrorClosing: true });
+    genErrorFadeTimerRef.current = window.setTimeout(() => {
+      setUiState({ showGenError: false, genErrorClosing: false });
     }, 300);
   },[]);
 
   const openGenError = useCallback(() => {
     clearGenErrorTimers(); 
+    setUiState({ showGenError: true, genErrorClosing: false });
     genErrorAutoCloseTimerRef.current = window.setTimeout(() => closeGenError(), 5000);
-  }, [clearGenErrorTimers, closeGenError]);
+  },[clearGenErrorTimers, closeGenError]);
 
   const computeCornerDance = useCallback((timeMs: number) => {
     const bpm = DEFAULT_BPM;
@@ -287,7 +378,7 @@ const GameContent: React.FC = () => {
     };
     set(cornerTLRef.current, -15, 1); set(cornerTRRef.current, 15, -1);
     set(cornerBLRef.current, -10, 1); set(cornerBRRef.current, 10, -1);
-  },[computeCornerDance]);
+  }, [computeCornerDance]);
 
   const prepareSpriteSource = useCallback((img: HTMLImageElement): HTMLCanvasElement => {
     const w = img.naturalWidth || img.width;
@@ -339,32 +430,48 @@ const GameContent: React.FC = () => {
   const setupAudioGraph = useCallback(() => {
     if (!audioRef.current) return null;
     
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        if (audioContextRef.current.state === 'suspended') {
-            audioContextRef.current.resume().catch(() => {});
+    let ctx = audioContextRef.current;
+
+    if (!ctx || ctx.state === 'closed') {
+        try {
+            const Ctx = window.AudioContext || (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+            ctx = new Ctx();
+            audioContextRef.current = ctx;
+        } catch (e) {
+            console.error("AudioContext creation failed:", e);
+            return null;
         }
-        return audioDestNodeRef.current; 
+    }
+
+    if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+    }
+
+    if (!audioSourceNodeRef.current) {
+        try {
+            audioSourceNodeRef.current = ctx.createMediaElementSource(audioRef.current);
+            audioSourceNodeRef.current.connect(ctx.destination);
+        } catch (e) {
+            console.error("Source creation failed:", e);
+            return null;
+        }
+    }
+
+    if (audioDestNodeRef.current && audioSourceNodeRef.current) {
+        try {
+            audioSourceNodeRef.current.disconnect(audioDestNodeRef.current);
+        } catch {
+            // ignore
+        }
     }
 
     try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const Ctx = window.AudioContext || (window as any).webkitAudioContext;
-        const ctx = new Ctx();
-        audioContextRef.current = ctx;
-
-        if (!audioSourceNodeRef.current) {
-            audioSourceNodeRef.current = ctx.createMediaElementSource(audioRef.current);
-        }
-
-        const dest = ctx.createMediaStreamDestination();
-        audioDestNodeRef.current = dest;
-
-        audioSourceNodeRef.current.connect(ctx.destination);
-        audioSourceNodeRef.current.connect(dest);
-
-        return dest;
+        const newDest = ctx.createMediaStreamDestination();
+        audioDestNodeRef.current = newDest;
+        audioSourceNodeRef.current.connect(newDest);
+        return newDest;
     } catch (e) {
-        console.error("Audio Graph Setup Failed:", e);
+        console.error("Destination creation failed:", e);
         return null;
     }
   },[]);
@@ -372,10 +479,9 @@ const GameContent: React.FC = () => {
   useEffect(() => {
     isMountedRef.current = true;
     resetCornerTransform();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (document as any).fonts?.ready?.catch?.(() => { /* ignore */ });
+    (document as Document & { fonts?: { ready?: Promise<void> } }).fonts?.ready?.catch?.(() => { /* ignore */ });
     return () => { isMountedRef.current = false; clearGenErrorTimers(); };
-  },[resetCornerTransform, clearGenErrorTimers]);
+  }, [resetCornerTransform, clearGenErrorTimers]);
 
   const cancelRafIfAny = useCallback(() => {
     if (requestRef.current !== undefined) { cancelAnimationFrame(requestRef.current); requestRef.current = undefined; }
@@ -482,8 +588,8 @@ const GameContent: React.FC = () => {
     ctx.fillText("BEAT.BOTON.ONE", W / 2, H - marginMarkY);
     ctx.restore();
 
-    const activeIntro = opts?.forceIntro ?? isInIntro;
-    const activeState = opts?.gameStateOverride || (appState === AppState.PLAYING ? engineStateRef.current : null);
+    const activeIntro = opts?.forceIntro ?? uiState.isInIntro;
+    const activeState = opts?.gameStateOverride || (uiState.appState === AppState.PLAYING ? engineStateRef.current : null);
 
     if (!activeIntro && activeState && activeState.roundNumber) {
         ctx.save();
@@ -519,8 +625,8 @@ const GameContent: React.FC = () => {
         ctx.restore();
     }
 
-    if (appState === AppState.PLAYING && activeIntro) {
-      const textToShow = (opts?.introTextOverride ?? introText) || "";
+    if (uiState.appState === AppState.PLAYING && activeIntro) {
+      const textToShow = (opts?.introTextOverride ?? uiState.introText) || "";
       ctx.save();
       const frameT = timeMs / 1000; const bounce = 1 + Math.sin(frameT * 10) * 0.05;
       ctx.translate(W / 2, H / 2); ctx.scale(bounce, bounce);
@@ -532,7 +638,7 @@ const GameContent: React.FC = () => {
       ctx.restore();
     }
     
-  },[appState, isInIntro, introText, computeCornerDance, normalizedWords, canvasLabelsRef]);
+  },[uiState.appState, uiState.isInIntro, uiState.introText, computeCornerDance, normalizedWords, canvasLabelsRef]);
 
   const tryStartRecordingWithTrim = useCallback(async function loop() {
     if (recordingStartedRef.current) return;
@@ -545,9 +651,7 @@ const GameContent: React.FC = () => {
 
     const audioMs = a.currentTime * 1000;
     if (audioMs < RECORDING_TRIM_START_MS) {
-      requestAnimationFrame(() => {
-        void loop();
-      });
+      requestAnimationFrame(() => void loop());
       return;
     }
 
@@ -558,16 +662,9 @@ const GameContent: React.FC = () => {
     const visualRawTime = now - syncRef.current.startTime + syncRef.current.visualOffset;
     const warmupTimeMs = Math.max(0, visualRawTime) + RECORDING_VIDEO_LAG_MS;
 
-    renderCompositeFrame(warmupTimeMs, {
-      forceIntro: true,
-      introTextOverride: getReadyText
-    });
+    renderCompositeFrame(warmupTimeMs, { forceIntro: true, introTextOverride: getReadyText });
     await waitNextAnimationFrame();
-
-    renderCompositeFrame(warmupTimeMs, {
-      forceIntro: true,
-      introTextOverride: getReadyText
-    });
+    renderCompositeFrame(warmupTimeMs, { forceIntro: true, introTextOverride: getReadyText });
     await waitNextAnimationFrame();
 
     await recorder.startRecording({
@@ -576,8 +673,8 @@ const GameContent: React.FC = () => {
       videoBitsPerSecond: args.videoBitsPerSecond
     });
 
-    setRecordingStatus({ isRecording: true });
-  },[getReadyText, renderCompositeFrame, waitNextAnimationFrame]);
+    setRecState({ status: { isRecording: true } });
+  }, [getReadyText, renderCompositeFrame, waitNextAnimationFrame]);
 
   const handleReset = useCallback(() => {
     cancelRafIfAny();
@@ -585,28 +682,35 @@ const GameContent: React.FC = () => {
 
     const a = audioRef.current;
     if (a) {
-        a.pause(); a.currentTime = 0;
+        a.pause();
+        a.currentTime = 0;
         a.removeEventListener("playing", performAudioLock);
     }
     
     if (recordingServiceRef.current) { recordingServiceRef.current.cancelRecording(); recordingServiceRef.current = null; }
-    if (recordingStatus.recordedUrl) URL.revokeObjectURL(recordingStatus.recordedUrl);
+    if (recState.status.recordedUrl) URL.revokeObjectURL(recState.status.recordedUrl);
     generationTokenRef.current += 1;
-    setAppState(AppState.IDLE); 
-    setUiRoundInfo({ round: 1, beat: 0, totalBeats: 40 }); setUiOverlayState({ show: false, alpha: 0, pattern:[] });
-    setRecordingStatus({ isRecording: false });
-    setIsInIntro(false); setIntroText("");
-    setIsGeminiGenerating(false);
+    
+    setUiState({
+      appState: AppState.IDLE,
+      uiRoundInfo: { round: 1, beat: 0, totalBeats: 40 },
+      uiOverlayState: { show: false, alpha: 0, pattern:[] },
+      isInIntro: false,
+      introText: "",
+      isGeminiGenerating: false,
+      isMobileVertical: false,
+      showGenError: false,
+      genErrorClosing: false
+    });
+    setRecState({ status: { isRecording: false } });
 
-    setIsMobileVertical(false);
     layoutAnim.current = 0; 
     
     startTimeRef.current = null; timelineRef.current = null; rendererRef.current = null; spritesheetRef.current = null;
     sessionSeedRef.current = null;
     engineStateRef.current = undefined; 
     resetCornerTransform();
-
-  },[cancelRafIfAny, resetCornerTransform, recordingStatus.recordedUrl, performAudioLock]);
+  },[cancelRafIfAny, resetCornerTransform, recState.status.recordedUrl, performAudioLock]);
 
   const loadImage = useCallback(async (url: string): Promise<HTMLImageElement> => {
     const img = new Image(); img.crossOrigin = 'anonymous'; img.src = url;
@@ -615,46 +719,48 @@ const GameContent: React.FC = () => {
   },[]);
 
   const handleNextPreset = useCallback(() => {
-    if (appState !== AppState.IDLE) return;
+    if (uiState.appState !== AppState.IDLE) return;
     const currentKey = wordsKey(words);
     const currentIndex = PRESETS.findIndex(p => wordsKey(p.words) === currentKey);
     setWords([...PRESETS[(currentIndex + 1) % PRESETS.length].words]);
-  },[words, appState]);
+  },[words, uiState.appState]);
 
   const handlePrevPreset = useCallback(() => {
-    if (appState !== AppState.IDLE) return;
+    if (uiState.appState !== AppState.IDLE) return;
     const currentKey = wordsKey(words);
     const currentIndex = PRESETS.findIndex(p => wordsKey(p.words) === currentKey);
     setWords([...PRESETS[currentIndex === -1 ? PRESETS.length - 1 : (currentIndex - 1 + PRESETS.length) % PRESETS.length].words]);
-  },[words, appState]);
+  },[words, uiState.appState]);
 
   const handleShareVideo = useCallback(async () => {
-    if (!recordingStatus.recordedBlob) return;
-    const rawMime = (recordingStatus.mimeType || 'video/webm').toLowerCase();
+    if (!recState.status.recordedBlob) return;
+    const rawMime = (recState.status.mimeType || 'video/webm').toLowerCase();
     const isMp4 = rawMime.includes('mp4');
     const extension = isMp4 ? 'mp4' : 'webm';
-    const file = new File([recordingStatus.recordedBlob], `BeatGrid_Gameplay.${extension}`, { type: isMp4 ? 'video/mp4' : 'video/webm', lastModified: Date.now() });
+    const file = new File([recState.status.recordedBlob], `BeatGrid_Gameplay.${extension}`, { type: isMp4 ? 'video/mp4' : 'video/webm', lastModified: Date.now() });
     try {
       const shareData = { files: [file], title: t('share.title'), text: t('share.text') };
       if (navigator.canShare(shareData)) await navigator.share(shareData);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) { if (err.name !== 'AbortError') alert(t('errors.share.failed')); }
-  }, [recordingStatus, t]);
+    } catch (err: unknown) { 
+      if (err instanceof Error && err.name !== 'AbortError') alert(t('errors.share.failed')); 
+    }
+  },[recState.status, t]);
 
   useEffect(() => {
-    if (recordingStatus.recordedBlob && recordingStatus.mimeType && navigator.canShare) {
-      const rawMime = recordingStatus.mimeType.toLowerCase();
+    const status = recState.status;
+    if (status.recordedBlob && status.mimeType && navigator.canShare) {
+      const rawMime = status.mimeType.toLowerCase();
       const cleanMime = rawMime.includes('mp4') ? 'video/mp4' : 'video/webm';
-      const file = new File([recordingStatus.recordedBlob], `test.${cleanMime.split('/')[1]}`, { type: cleanMime, lastModified: Date.now() });
+      const file = new File([status.recordedBlob], `test.${cleanMime.split('/')[1]}`, { type: cleanMime, lastModified: Date.now() });
       try { 
-        setCanShareNative(navigator.canShare({ files: [file] })); 
+        setRecState({ canShareNative: navigator.canShare({ files:[file] }) }); 
       } catch { 
-        setCanShareNative(false); 
+        setRecState({ canShareNative: false }); 
       }
     } else { 
-      setCanShareNative(false); 
+      setRecState({ canShareNative: false }); 
     }
-  }, [recordingStatus]);
+  }, [recState.status]);
 
   const startGameSession = useCallback(async (currentWords: string[]) => {
     cancelRafIfAny();
@@ -663,7 +769,14 @@ const GameContent: React.FC = () => {
     const seed = Math.random().toString(36).substr(2, 9); sessionSeedRef.current = seed;
     const settings: GameSettings = { words: currentWords, bpm: DEFAULT_BPM, beatsPerRound: BEATS_PER_ROUND, seed };
     timelineRef.current = createTimeline(settings);
-    setUiRoundInfo({ round: 1, beat: 0, totalBeats: timelineRef.current.totalBeats });
+    
+    setUiState({ 
+      uiRoundInfo: { round: 1, beat: 0, totalBeats: timelineRef.current.totalBeats },
+      appState: AppState.PLAYING,
+      isInIntro: true,
+      showGenError: false,
+      genErrorClosing: false
+    });
 
     if (!rendererRef.current && canvasRef.current && spritesheetRef.current) {
         const { CanvasRenderer } = await import('./lib/game/renderer');
@@ -678,9 +791,7 @@ const GameContent: React.FC = () => {
       driftSamples:[], lastAudioTime: 0, lastFrameTime: now
     };
 
-    setAppState(AppState.PLAYING); setIsInIntro(true);
-
-    if (enableRecording && canvasRef.current) {
+    if (recState.enableRecording && canvasRef.current) {
       try {
         const { CanvasRecordingService } = await import('./services/recordingService');
         if (CanvasRecordingService.isSupported()) {
@@ -693,45 +804,34 @@ const GameContent: React.FC = () => {
              audioTrack = destNode.stream.getAudioTracks()[0];
           } else if (audioRef.current) {
              try {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const a = audioRef.current as any;
-                const s = a.captureStream ? a.captureStream() : a.mozCaptureStream();
+                const a = audioRef.current as HTMLAudioElement & { captureStream?: () => MediaStream; mozCaptureStream?: () => MediaStream; };
+                const s = a.captureStream ? a.captureStream() : a.mozCaptureStream?.();
                 if (s) audioTrack = s.getAudioTracks()[0];
              } catch { /* ignore */ }
           }
 
           const targetCanvas = compositeCanvasRef.current || canvasRef.current;
-          
           recordingStartedRef.current = false;
           recordingStoppedRef.current = false;
-          pendingRecordingArgsRef.current = null;
-
-          pendingRecordingArgsRef.current = {
-            canvas: targetCanvas,
-            audioTrack,
-            videoBitsPerSecond: 2_500_000
-          };
-
+          pendingRecordingArgsRef.current = { canvas: targetCanvas, audioTrack, videoBitsPerSecond: 2_500_000 };
           isRecordingActiveRef.current = false;
-          setRecordingStatus({ isRecording: true });
+          setRecState({ status: { isRecording: true } });
         }
-      } catch (error: Error | unknown) {
-        console.error("Failed to load or start recording service:", error);
+      } catch (error: unknown) {
+        console.error("Failed to load recording service:", error);
         isRecordingActiveRef.current = false;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setRecordingStatus({ isRecording: false, error: `Error grabación: ${(error as any).message}` });
+        setRecState({ status: { isRecording: false, error: `Error grabación: ${error instanceof Error ? error.message : String(error)}` } });
       }
     } else {
       isRecordingActiveRef.current = false;
-      setRecordingStatus({ isRecording: false });
+      setRecState({ status: { isRecording: false } });
     }
 
     if (audioRef.current) {
       const a = audioRef.current;
-      if (!a.src || a.src === window.location.href) {
-         a.src = "/audio/game-track.opus";
-      }
-      a.currentTime = 0; a.volume = 1.0; a.muted = false;
+      a.currentTime = 0;
+      a.volume = 1.0;
+      a.muted = false;
       a.removeEventListener("playing", performAudioLock);
       a.addEventListener("playing", performAudioLock, { once: true });
       
@@ -739,14 +839,10 @@ const GameContent: React.FC = () => {
           audioContextRef.current.resume();
       }
       
-      a.play().then(() => {
-         void tryStartRecordingWithTrim();
-      }).catch(() => { 
-        syncRef.current.isLocked = false; 
-      });
+      a.play().then(() => void tryStartRecordingWithTrim()).catch(() => { syncRef.current.isLocked = false; });
     }
 
-  },[cancelRafIfAny, enableRecording, performAudioLock, setupAudioGraph, ensureBackgroundCache, tryStartRecordingWithTrim]);
+  },[cancelRafIfAny, recState.enableRecording, performAudioLock, setupAudioGraph, ensureBackgroundCache, tryStartRecordingWithTrim]);
 
   const handleRestartCurrentSession = useCallback(async () => {
     cancelRafIfAny();
@@ -756,109 +852,93 @@ const GameContent: React.FC = () => {
     isRecordingActiveRef.current = false;
 
     if (audioRef.current) { 
-        audioRef.current.pause(); audioRef.current.currentTime = 0; 
+        audioRef.current.pause(); 
+        audioRef.current.currentTime = 0; 
         audioRef.current.removeEventListener("playing", performAudioLock);
     }
     
     if (recordingServiceRef.current) { recordingServiceRef.current.cancelRecording(); recordingServiceRef.current = null; }
-    if (recordingStatus.recordedUrl) URL.revokeObjectURL(recordingStatus.recordedUrl);
+    if (recState.status.recordedUrl) URL.revokeObjectURL(recState.status.recordedUrl);
 
-    setRecordingStatus({ isRecording: false });
+    setRecState({ status: { isRecording: false } });
 
     const seed = sessionSeedRef.current ?? Math.random().toString(36).substr(2, 9);
     sessionSeedRef.current = seed;
     timelineRef.current = createTimeline({ words, bpm: DEFAULT_BPM, beatsPerRound: BEATS_PER_ROUND, seed });
-
     engineStateRef.current = undefined; 
-    setUiRoundInfo({ round: 1, beat: 0, totalBeats: timelineRef.current.totalBeats });
-    setIsInIntro(true); setIntroText("");
+
+    setUiState({ 
+      uiRoundInfo: { round: 1, beat: 0, totalBeats: timelineRef.current.totalBeats },
+      appState: AppState.PLAYING,
+      isInIntro: true,
+      introText: "",
+      showGenError: false,
+      genErrorClosing: false
+    });
 
     const now = performance.now();
     startTimeRef.current = now;
-    syncRef.current = { 
-        startTime: now, visualOffset: 0, isLocked: false,
-        driftSamples:[], lastAudioTime: 0, lastFrameTime: now
-    };
+    syncRef.current = { startTime: now, visualOffset: 0, isLocked: false, driftSamples:[], lastAudioTime: 0, lastFrameTime: now };
 
-    setAppState(AppState.PLAYING);
-
-    if (enableRecording) {
+    if (recState.enableRecording) {
       try {
         const { CanvasRecordingService } = await import('./services/recordingService');
         if (CanvasRecordingService.isSupported()) {
           recordingServiceRef.current = new CanvasRecordingService();
-          
           let audioTrack: MediaStreamTrack | undefined;
           const destNode = setupAudioGraph(); 
           if (destNode && destNode.stream.getAudioTracks().length > 0) {
              audioTrack = destNode.stream.getAudioTracks()[0];
           } else if (audioRef.current) {
              try {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const a = audioRef.current as any;
-                const s = a.captureStream ? a.captureStream() : a.mozCaptureStream();
+                const a = audioRef.current as HTMLAudioElement & { captureStream?: () => MediaStream; mozCaptureStream?: () => MediaStream; };
+                const s = a.captureStream ? a.captureStream() : a.mozCaptureStream?.();
                 if (s) audioTrack = s.getAudioTracks()[0];
              } catch { /* ignore */ }
           }
-
           const targetCanvas = compositeCanvasRef.current || canvasRef.current;
-          
           recordingStartedRef.current = false;
           recordingStoppedRef.current = false;
-          pendingRecordingArgsRef.current = null;
-          
-          pendingRecordingArgsRef.current = {
-             canvas: targetCanvas,
-             audioTrack,
-             videoBitsPerSecond: 2_500_000
-          };
-          
+          pendingRecordingArgsRef.current = { canvas: targetCanvas, audioTrack, videoBitsPerSecond: 2_500_000 };
           isRecordingActiveRef.current = false;
-          setRecordingStatus({ isRecording: true });
+          setRecState({ status: { isRecording: true } });
         }
-      } catch (e: Error | unknown) {
-        console.error("Failed to restart recording service:", e);
+      } catch (error: unknown) {
+        console.error("Failed to restart recording service:", error);
         isRecordingActiveRef.current = false;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setRecordingStatus({ isRecording: false, error: (e as any).message });
+        setRecState({ status: { isRecording: false, error: error instanceof Error ? error.message : String(error) } });
       }
     }
 
     if (audioRef.current) {
       const a = audioRef.current;
-      if (!a.src || a.src === window.location.href) {
-        a.src = "/audio/game-track.opus";
-      }
-      a.currentTime = 0; a.muted = false;
+      a.currentTime = 0;
+      a.muted = false;
       a.removeEventListener("playing", performAudioLock);
       a.addEventListener("playing", performAudioLock, { once: true });
-      
-      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-          audioContextRef.current.resume();
-      }
-      
-      a.play().then(() => {
-         void tryStartRecordingWithTrim();
-      }).catch(() => {});
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') { audioContextRef.current.resume(); }
+      a.play().then(() => void tryStartRecordingWithTrim()).catch(() => {});
     }
 
-  },[cancelRafIfAny, handleReset, words, recordingStatus.recordedUrl, enableRecording, performAudioLock, setupAudioGraph, ensureBackgroundCache, tryStartRecordingWithTrim]);
+  },[cancelRafIfAny, handleReset, words, recState.status.recordedUrl, recState.enableRecording, performAudioLock, setupAudioGraph, ensureBackgroundCache, tryStartRecordingWithTrim]);
 
   const handleGenerate = useCallback(async () => {
-    if (appState === AppState.GENERATING) return;
+    if (uiState.appState === AppState.GENERATING) return;
     const myToken = (generationTokenRef.current += 1);
     const preset = findPreset(words);
     const willUseGemini = !preset;
-    setIsGeminiGenerating(willUseGemini);
-    setAppState(AppState.GENERATING);
-    setRecordingStatus({ isRecording: false });
+    
+    clearGenErrorTimers();
+    setUiState({ 
+      isGeminiGenerating: willUseGemini, 
+      appState: AppState.GENERATING,
+      showGenError: false,
+      genErrorClosing: false
+    });
+    setRecState({ status: { isRecording: false } });
     
     if (audioRef.current) {
-      if (audioRef.current.src) audioRef.current.load();
       setupAudioGraph();
-      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-        audioContextRef.current.resume().catch(() => {});
-      }
     }
 
     try {
@@ -871,7 +951,6 @@ const GameContent: React.FC = () => {
       }
       
       if (!isMountedRef.current || myToken !== generationTokenRef.current) return;
-      
       const img = await loadImage(url);
       if (!isMountedRef.current || myToken !== generationTokenRef.current) return;
       
@@ -894,16 +973,15 @@ const GameContent: React.FC = () => {
     } catch (e) {
       console.error("[App] Gen Error:", e);
       if (isMountedRef.current && myToken === generationTokenRef.current) {
-        setAppState(AppState.IDLE);
+        setUiState({ appState: AppState.IDLE });
         if (willUseGemini) openGenError();
       }
     } finally {
       if (isMountedRef.current && myToken === generationTokenRef.current) {
-        setIsGeminiGenerating(false);
+        setUiState({ isGeminiGenerating: false });
       }
     }
-    
-  },[appState, words, loadImage, startGameSession, prepareSpriteSource, openGenError, setupAudioGraph]);
+  },[uiState.appState, words, loadImage, startGameSession, prepareSpriteSource, openGenError, setupAudioGraph, clearGenErrorTimers]);
 
   const projectToViewCanvas = useCallback((progress: number) => {
     const src = canvasRef.current;
@@ -970,19 +1048,15 @@ const GameContent: React.FC = () => {
 
         dstCtx.drawImage(src, sx, sy, srcCellW, srcCellH, currentX, currentY, currentCW, currentCH);
     }
-
   },[]);
 
   const animate = useCallback(function loop() {
-    if (appState !== AppState.PLAYING || !timelineRef.current || !canvasRef.current || !spritesheetRef.current) return;
+    if (uiState.appState !== AppState.PLAYING || !timelineRef.current || !canvasRef.current || !spritesheetRef.current) return;
 
-    const targetLayout = isMobileVertical ? 1 : 0;
+    const targetLayout = uiState.isMobileVertical ? 1 : 0;
     const diff = targetLayout - layoutAnim.current;
-    if (Math.abs(diff) > 0.001) {
-      layoutAnim.current += diff * 0.1;
-    } else {
-      layoutAnim.current = targetLayout;
-    }
+    if (Math.abs(diff) > 0.001) layoutAnim.current += diff * 0.1;
+    else layoutAnim.current = targetLayout;
 
     const now = performance.now();
     const deltaTime = now - syncRef.current.lastFrameTime;
@@ -1027,120 +1101,91 @@ const GameContent: React.FC = () => {
     const offsetMs = SONG_OFFSET_SEC * 1000;
     applyCornerDance(visualTimeMs);
     
-    if (!rendererRef.current && CanvasRendererClassRef.current) {
-        rendererRef.current = new CanvasRendererClassRef.current(canvasRef.current, spritesheetRef.current);
-    }
-    
+    if (!rendererRef.current && CanvasRendererClassRef.current) rendererRef.current = new CanvasRendererClassRef.current(canvasRef.current, spritesheetRef.current);
     if (!rendererRef.current) return;
 
     if (isRecordingActiveRef.current) {
         const recordingTimeMs = recordingBaseTimeMs + RECORDING_VIDEO_LAG_MS;
-        
         if (recordingTimeMs < offsetMs) {
             const timeRemaining = offsetMs - recordingTimeMs;
             const visualBeatsLeft = Math.ceil((timeRemaining / 1000) / (60 / DEFAULT_BPM));
             const recIntroText = visualBeatsLeft > 4 ? getReadyText : visualBeatsLeft.toString();
-            
             let recIntroState: Partial<GameState> | null = null;
             if (timeRemaining <= CELL_LABEL_DURATION_MS) {
                 const timeSinceWindowStart = CELL_LABEL_DURATION_MS - timeRemaining;
                 const alpha = CELL_LABEL_FADE_IN_MS > 0 ? Math.min(1, Math.max(0, timeSinceWindowStart / CELL_LABEL_FADE_IN_MS)) : 1;
                 recIntroState = { currentPattern: timelineRef.current.rounds[0].pattern, showCellLabels: true, cellLabelsAlpha: alpha, roundNumber: 1 };
             }
-
             rendererRef.current.render(canvasRef.current.width, canvasRef.current.height, timelineRef.current.rounds[0].pattern, timelineRef.current.rounds[0].pattern, 0, 0, -1);
             renderCompositeFrame(recordingTimeMs, { forceIntro: true, introTextOverride: recIntroText, gameStateOverride: recIntroState });
         } else {
             const gameTimeRec = recordingTimeMs - offsetMs;
-            const recState = getGameStateAtTime(gameTimeRec, timelineRef.current);
-            
-            rendererRef.current.render(
-                canvasRef.current.width, canvasRef.current.height,
-                recState.currentPattern, recState.prevPattern, recState.interpolation,
-                (recordingTimeMs % timelineRef.current.msPerBeat) / timelineRef.current.msPerBeat,
-                recState.activeCellIndex
-            );
-            
-            renderCompositeFrame(recordingTimeMs, { gameStateOverride: recState });
+            const recStateLoc = getGameStateAtTime(gameTimeRec, timelineRef.current);
+            rendererRef.current.render(canvasRef.current.width, canvasRef.current.height, recStateLoc.currentPattern, recStateLoc.prevPattern, recStateLoc.interpolation, (recordingTimeMs % timelineRef.current.msPerBeat) / timelineRef.current.msPerBeat, recStateLoc.activeCellIndex);
+            renderCompositeFrame(recordingTimeMs, { gameStateOverride: recStateLoc });
         }
     }
 
     if (visualTimeMs < offsetMs) {
-      if (!isInIntro) setIsInIntro(true);
       const timeRemaining = offsetMs - visualTimeMs;
       const visualBeatsLeft = Math.ceil((timeRemaining / 1000) / (60 / DEFAULT_BPM));
       const nextText = visualBeatsLeft > 4 ? getReadyText : visualBeatsLeft.toString();
       
-      if (nextText !== introText) setIntroText(nextText);
-      
-      if (timeRemaining <= CELL_LABEL_DURATION_MS) {
-        const timeSinceWindowStart = CELL_LABEL_DURATION_MS - timeRemaining;
-        const alpha = CELL_LABEL_FADE_IN_MS > 0 ? Math.min(1, Math.max(0, timeSinceWindowStart / CELL_LABEL_FADE_IN_MS)) : 1;
-        setUiOverlayState({ show: true, alpha, pattern: timelineRef.current.rounds[0].pattern });
-      } else { setUiOverlayState(prev => prev.show ? { ...prev, show: false } : prev); }
+      setUiState((prev) => {
+        const changes: Partial<UiState> = {};
+        if (!prev.isInIntro) changes.isInIntro = true;
+        if (nextText !== prev.introText) changes.introText = nextText;
+        
+        if (timeRemaining <= CELL_LABEL_DURATION_MS) {
+          const timeSinceWindowStart = CELL_LABEL_DURATION_MS - timeRemaining;
+          const alpha = CELL_LABEL_FADE_IN_MS > 0 ? Math.min(1, Math.max(0, timeSinceWindowStart / CELL_LABEL_FADE_IN_MS)) : 1;
+          if (prev.uiOverlayState.alpha !== alpha || !prev.uiOverlayState.show) {
+            changes.uiOverlayState = { show: true, alpha, pattern: timelineRef.current!.rounds[0].pattern };
+          }
+        } else if (prev.uiOverlayState.show) { 
+          changes.uiOverlayState = { ...prev.uiOverlayState, show: false }; 
+        }
+        return Object.keys(changes).length > 0 ? changes : null;
+      });
 
       rendererRef.current.render(canvasRef.current.width, canvasRef.current.height, timelineRef.current.rounds[0].pattern, timelineRef.current.rounds[0].pattern, 0, 0, -1);
-      
       projectToViewCanvas(layoutAnim.current);
       requestRef.current = requestAnimationFrame(loop);
       return;
     }
 
-    if (isInIntro) setIsInIntro(false);
     const gameTimeMs = visualTimeMs - offsetMs;
     engineStateRef.current = getGameStateAtTime(gameTimeMs, timelineRef.current, engineStateRef.current);
     const state = engineStateRef.current;
 
-    if (state.roundNumber !== uiRoundInfo.round) setUiRoundInfo(prev => ({ ...prev, round: state.roundNumber, beat: 0 }));
-    if (state.showCellLabels !== uiOverlayState.show || Math.abs(state.cellLabelsAlpha - uiOverlayState.alpha) > 0.05) {
-        setUiOverlayState({ show: state.showCellLabels, alpha: state.cellLabelsAlpha, pattern: state.currentPattern });
-    }
+    setUiState((prev) => {
+      const changes: Partial<UiState> = {};
+      if (prev.isInIntro) changes.isInIntro = false;
+      if (state.roundNumber !== prev.uiRoundInfo.round) {
+          changes.uiRoundInfo = { round: state.roundNumber, beat: 0, totalBeats: timelineRef.current!.totalBeats };
+      }
+      if (state.showCellLabels !== prev.uiOverlayState.show || Math.abs(state.cellLabelsAlpha - prev.uiOverlayState.alpha) > 0.05) {
+          changes.uiOverlayState = { show: state.showCellLabels, alpha: state.cellLabelsAlpha, pattern: state.currentPattern };
+      }
+      return Object.keys(changes).length > 0 ? changes : null;
+    });
 
-    if (
-      isRecordingActiveRef.current &&
-      recordingStartedRef.current &&
-      !recordingStoppedRef.current &&
-      timelineRef.current
-    ) {
+    if (isRecordingActiveRef.current && recordingStartedRef.current && !recordingStoppedRef.current && timelineRef.current) {
       const totalGameMs = timelineRef.current.totalBeats * timelineRef.current.msPerBeat;
-
       if (gameTimeMs >= Math.max(0, totalGameMs - RECORDING_TRIM_END_MS)) {
         recordingStoppedRef.current = true;
-
         const finalRecTime = recordingBaseTimeMs + RECORDING_VIDEO_LAG_MS;
-        rendererRef.current.render(
-          canvasRef.current.width,
-          canvasRef.current.height,
-          state.currentPattern,
-          state.prevPattern,
-          state.interpolation,
-          0,
-          -1
-        );
+        rendererRef.current.render(canvasRef.current.width, canvasRef.current.height, state.currentPattern, state.prevPattern, state.interpolation, 0, -1);
         renderCompositeFrame(finalRecTime, { gameStateOverride: state });
-
         const activeRecorder = recordingServiceRef.current;
         recordingServiceRef.current = null;
         isRecordingActiveRef.current = false;
-
         if (activeRecorder) {
-          activeRecorder
-            .stopRecording()
-            .then((r: RecordingResult) => {
-              setRecordingStatus({
-                isRecording: false,
-                recordedUrl: r.url,
-                recordedBlob: r.blob,
-                mimeType: r.mimeType
-              });
-            })
-            .catch(() => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              setRecordingStatus({ isRecording: false, error: 'Error guardando video.' } as any);
-            });
+          activeRecorder.stopRecording()
+            .then((r: RecordingResult) => setRecState({ status: { isRecording: false, recordedUrl: r.url, recordedBlob: r.blob, mimeType: r.mimeType } }))
+            .catch(() => setRecState({ status: { isRecording: false, error: 'Error guardando video.' } }));
         } else {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setRecordingStatus((s: any) => ({ ...s, isRecording: false }));
+          setRecState({ status: { isRecording: false } });
         }
       }
     }
@@ -1151,55 +1196,46 @@ const GameContent: React.FC = () => {
           audioRef.current.pause(); audioRef.current.currentTime = 0; 
           audioRef.current.removeEventListener("playing", performAudioLock);
       }
-      
       if (isRecordingActiveRef.current && !recordingStoppedRef.current) {
           const finalRecTime = recordingBaseTimeMs + RECORDING_VIDEO_LAG_MS;
           rendererRef.current.render(canvasRef.current.width, canvasRef.current.height, state.currentPattern, state.prevPattern, state.interpolation, 0, -1);
           renderCompositeFrame(finalRecTime, { gameStateOverride: state }); 
-          
           const activeRecorder = recordingServiceRef.current; 
           recordingServiceRef.current = null; isRecordingActiveRef.current = false;
           if (activeRecorder) {
               activeRecorder.stopRecording()
-                .then((r: RecordingResult) => setRecordingStatus({ isRecording: false, recordedUrl: r.url, recordedBlob: r.blob, mimeType: r.mimeType }))
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                .catch(() => setRecordingStatus({ isRecording: false, error: 'Error guardando video.' } as any));
+                .then((r: RecordingResult) => setRecState({ status: { isRecording: false, recordedUrl: r.url, recordedBlob: r.blob, mimeType: r.mimeType } }))
+                .catch(() => setRecState({ status: { isRecording: false, error: 'Error guardando video.' } }));
           }
       } else if (!recordingStoppedRef.current) { 
-          setRecordingStatus(s => ({ ...s, isRecording: false })); 
+          setRecState({ status: { isRecording: false } }); 
       }
-
-      setAppState(AppState.FINISHED); resetCornerTransform();
+      setUiState({ appState: AppState.FINISHED }); resetCornerTransform();
       return;
     }
 
-    rendererRef.current.render(
-        canvasRef.current.width, canvasRef.current.height, 
-        state.currentPattern, state.prevPattern, state.interpolation, 
-        (gameTimeMs % timelineRef.current.msPerBeat) / timelineRef.current.msPerBeat, 
-        state.activeCellIndex
-    );
-
+    rendererRef.current.render(canvasRef.current.width, canvasRef.current.height, state.currentPattern, state.prevPattern, state.interpolation, (gameTimeMs % timelineRef.current.msPerBeat) / timelineRef.current.msPerBeat, state.activeCellIndex);
     projectToViewCanvas(layoutAnim.current);
-
     requestRef.current = requestAnimationFrame(loop);
     
-  },[appState, cancelRafIfAny, isInIntro, applyCornerDance, resetCornerTransform, renderCompositeFrame, getReadyText, introText, uiRoundInfo, uiOverlayState, performAudioLock, isMobileVertical, projectToViewCanvas]);
+  },[uiState.appState, uiState.isMobileVertical, cancelRafIfAny, applyCornerDance, resetCornerTransform, renderCompositeFrame, getReadyText, performAudioLock, projectToViewCanvas]);
 
   useEffect(() => {
-    if (appState === AppState.PLAYING) requestRef.current = requestAnimationFrame(animate);
+    if (uiState.appState === AppState.PLAYING) requestRef.current = requestAnimationFrame(animate);
     return () => cancelRafIfAny();
-  },[appState, animate, cancelRafIfAny]);
+  },[uiState.appState, animate, cancelRafIfAny]);
 
-  const showMenu = appState === AppState.IDLE || appState === AppState.GENERATING;
-  const showGame = appState === AppState.PLAYING || appState === AppState.FINISHED;
-  const isGenerating = appState === AppState.GENERATING;
-  const showVideoSection = !!recordingStatus.recordedUrl || recordingStatus.isRecording || !!recordingStatus.error;
 
-  const overlayCols = isMobileVertical ? 2 : 4;
-  const overlayRows = isMobileVertical ? 4 : 2;
-  const shouldRenderOverlay = appState === AppState.PLAYING && uiOverlayState.show && uiOverlayState.pattern.length > 0;
-  const overlayPaddingX = isMobileVertical ? '5.55%' : '0';
+  const showMenu = uiState.appState === AppState.IDLE || uiState.appState === AppState.GENERATING;
+  const showGame = uiState.appState === AppState.PLAYING || uiState.appState === AppState.FINISHED;
+  const isGenerating = uiState.appState === AppState.GENERATING;
+  const showVideoSection = !!recState.status.recordedUrl || recState.status.isRecording || !!recState.status.error;
+
+  const overlayCols = uiState.isMobileVertical ? 2 : 4;
+  const overlayRows = uiState.isMobileVertical ? 4 : 2;
+  const shouldRenderOverlay = uiState.appState === AppState.PLAYING && uiState.uiOverlayState.show && uiState.uiOverlayState.pattern.length > 0;
+  
+  const overlayTransform = uiState.isMobileVertical ? "translateX(5.55%) scaleX(0.889)" : "translateX(0) scaleX(1)";
 
   return (
     <div className="h-svh min-h-svh w-full relative overflow-hidden bg-[#f0f0f0] box-border">
@@ -1213,28 +1249,24 @@ const GameContent: React.FC = () => {
         style={{ backgroundColor: '#f0f0f0' }} 
       />
 
-      <audio ref={audioRef} preload="none" crossOrigin="anonymous" />
+      <audio ref={audioRef} src="/audio/game-track.opus" preload="auto" crossOrigin="anonymous" />
       
       <div ref={cornerTLRef} className="absolute top-2 sm:top-6 left-2 sm:left-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe" style={{ transform: 'translate3d(0, 0, 0) rotate(-15deg) scale(1)' }}>🎉</div>
       <div ref={cornerTRRef} className="absolute top-2 sm:top-6 right-2 sm:right-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe" style={{ transform: 'translate3d(0, 0, 0) rotate(15deg) scale(1)' }}>🎁</div>
       <div ref={cornerBLRef} className="absolute bottom-2 sm:bottom-6 left-2 sm:left-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe" style={{ transform: 'translate3d(0, 0, 0) rotate(-10deg) scale(1)' }}>😎</div>
       <div ref={cornerBRRef} className="absolute bottom-2 sm:bottom-6 right-2 sm:right-6 text-5xl sm:text-7xl drop-shadow-md z-20 select-none pointer-events-none emoji-safe" style={{ transform: 'translate3d(0, 0, 0) rotate(10deg) scale(1)' }}>🐸</div>
 
-      {appState === AppState.PLAYING && (
+      {uiState.appState === AppState.PLAYING && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-100 md:hidden portrait:block landscape:hidden">
           <button 
-            onClick={() => setIsMobileVertical(prev => !prev)}
-            aria-label={isMobileVertical ? "Switch to Horizontal View" : "Switch to Vertical View"}
+            type="button"
+            onClick={() => setUiState({ isMobileVertical: !uiState.isMobileVertical })}
+            aria-label={uiState.isMobileVertical ? "Switch to Horizontal View" : "Switch to Vertical View"}
             className="group flex items-center justify-center w-14 h-14 bg-white border-4 border-black rounded-full shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
           >
             <svg 
-              className={`w-7 h-7 text-black transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isMobileVertical ? 'rotate-90' : 'rotate-0'}`} 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="3" 
-              strokeLinecap="square" 
-              strokeLinejoin="miter"
+              className={`w-7 h-7 text-black transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${uiState.isMobileVertical ? 'rotate-90' : 'rotate-0'}`} 
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter"
             >
               <path d="M21 12H3M3 12L8 17M3 12L8 7M21 12L16 17M21 12L16 7" />
             </svg>
@@ -1244,25 +1276,32 @@ const GameContent: React.FC = () => {
 
       <div className={`absolute inset-0 z-30 w-full h-full overflow-y-scroll overflow-x-hidden no-scrollbar layer-transition ${showMenu ? 'visible-layer' : 'hidden-layer'}`}>
         <div className="min-h-full w-full flex flex-col items-center justify-center py-8 px-4 relative">
-          {showMenu && (
-            <div ref={langRef} className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-auto">
-              <button type="button" onClick={() => setLangOpen((v) => !v)} className={`relative flex items-center gap-3 bg-white border-[3px] border-black px-4 py-1.5 pr-10 font-black text-black uppercase text-xs md:text-sm tracking-widest cursor-pointer rounded-lg select-none transition-all duration-200 ease-out hover:bg-[#ffd500] ${langOpen ? "translate-y-0.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-[#ffe600]" : "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"}`}>
-                <span className="text-black">{LOCALE_LABELS[currentLocale]}</span>
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-black"><svg className={`w-4 h-4 transition-transform duration-300 ${langOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M19 9l-7 7-7-7" /></svg></span>
+          
+          {showMenu && <LanguageMenu currentLocale={currentLocale} onLanguageChange={handleLanguageChange} />}
+
+          {/* INICIO BLOQUE DE ERROR GEMINI AÑADIDO */}
+          {uiState.showGenError && (
+            <div 
+              role="alert"
+              className={`absolute top-20 md:top-24 left-1/2 -translate-x-1/2 z-60 flex items-center gap-3 bg-[#ff0055] border-4 border-black px-4 py-3 md:px-6 md:py-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 origin-center w-[90%] max-w-md ${uiState.genErrorClosing ? 'opacity-0 scale-95 -translate-y-2' : 'opacity-100 scale-100 translate-y-0 animate-slam'}`}
+            >
+              <span className="text-white text-xl md:text-2xl shrink-0" aria-hidden="true">⚠️</span>
+              <span className="text-white font-black text-xs md:text-sm uppercase tracking-widest flex-1 text-left" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                {t('errors.genError', 'Error generating. Please try again.')}
+              </span>
+              <button 
+                type="button" 
+                onClick={closeGenError}
+                aria-label="Close error message"
+                className="shrink-0 bg-transparent border-none text-white hover:scale-110 active:scale-95 transition-transform focus:outline-none cursor-pointer flex items-center justify-center"
+              >
+                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
-              {shouldRender && (
-                <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 p-3 bg-white border-3 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] origin-top transition-all grid grid-flow-col gap-2 grid-rows-8 grid-cols-2 w-[90vw] max-w-[24rem] md:grid-rows-5 md:grid-cols-3 md:w-xl md:max-w-none ${isVisible ? "opacity-100 scale-100 translate-y-0 duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)]" : "opacity-0 scale-90 -translate-y-4 duration-300 ease-in"}`}>
-                  {LOCALE_MENU.map((locale) => (
-                    <button key={locale} type="button" onClick={() => handleLanguageChange(locale)} className={`w-full text-center md:text-left px-1 py-2 md:px-3 md:py-2.5 font-black text-black text-[10px] md:text-xs tracking-tighter uppercase border-2 md:border-3 border-black rounded-lg transition-all duration-75 truncate ${currentLocale === locale ? "bg-[#ffe600] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] translate-y-0.5" : "bg-white hover:bg-[#f0f0f0] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5"}`}>
-                      <span className="block truncate">{LOCALE_LABELS[locale]}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           )}
+          {/* FIN BLOQUE DE ERROR GEMINI */}
 
-          <div className="relative z-30 flex flex-col items-center gap-4 md:gap-8 text-center p-5 md:p-8 bg-white rounded-3xl border-4 md:border-6 border-black hard-shadow w-full max-w-2xl">
+          <div className="relative z-30 flex flex-col items-center gap-4 md:gap-8 text-center p-5 md:p-8 bg-white rounded-3xl border-4 md:border-6 border-black hard-shadow w-full max-w-2xl mt-12 md:mt-0">
             <div className="flex items-center justify-between w-full gap-2 md:gap-4 mb-2 md:mb-0">
               <NavArrow direction="left" onClick={handlePrevPreset} disabled={isGenerating} ariaLabel={t('nav.prevPresetAria')} />
               <div className="flex flex-col gap-1 items-center transform -rotate-2 mx-auto">
@@ -1271,51 +1310,50 @@ const GameContent: React.FC = () => {
               </div>
               <NavArrow direction="right" onClick={handleNextPreset} disabled={isGenerating} ariaLabel={t('nav.nextPresetAria')} />
             </div>
+            
             <div className="w-full">
-                <WordEditor words={words} setWords={setWords} onGenerate={handleGenerate} disabled={isGenerating} isGeminiGenerating={isGeminiGenerating} />
+                <WordEditor words={words} setWords={setWords} onGenerate={handleGenerate} disabled={isGenerating} isGeminiGenerating={uiState.isGeminiGenerating} />
             </div>
-            <div className={`w-full flex items-center justify-between bg-gray-50 border-4 border-black p-3 md:p-4 rounded-xl cursor-pointer transition-colors ${enableRecording ? 'bg-green-50' : 'bg-gray-100'}`} onClick={() => !isGenerating && setEnableRecording(!enableRecording)}>
-              <div className="flex flex-col items-start text-left">
-                <span className="font-black uppercase text-sm md:text-lg text-black">{t('recording.title')}</span>
-                <span className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-wide leading-tight">{enableRecording ? t('recording.onHint') : t('recording.offHint')}</span>
-              </div>
-              <div className={`relative w-12 md:w-16 h-7 md:h-8 rounded-full border-4 border-black transition-colors duration-300 ${enableRecording ? 'bg-[#00ff99]' : 'bg-gray-300'}`}>
-                <div className={`absolute top-1/2 -translate-y-1/2 w-5 md:w-6 h-5 md:h-6 bg-white border-2 border-black rounded-full shadow-sm transition-all duration-300 ease-spring ${enableRecording ? 'left-[calc(100%-1.5rem)] md:left-[calc(100%-1.75rem)]' : 'left-0.5 md:left-1'}`} />
-              </div>
-            </div>
+            
+            <RecordingToggle 
+              enableRecording={recState.enableRecording} 
+              setEnableRecording={(val) => setRecState({ enableRecording: val })} 
+              disabled={isGenerating} 
+            />
           </div>
         </div>
       </div>
 
-      {appState === AppState.FINISHED && (
+      {uiState.appState === AppState.FINISHED && (
         <div className="fixed inset-0 z-999 w-full h-full overflow-y-scroll no-scrollbar animate-flash-overlay backdrop-blur-md flex items-center justify-center">
            <div className="min-h-full w-full flex flex-col items-center justify-center p-4 md:p-8">
             <div className="relative bg-white p-5 md:p-8 border-[6px] border-black hard-shadow flex flex-col items-center gap-6 max-w-4xl w-full box-border animate-slam origin-center">
               <h2 className="text-4xl md:text-6xl font-black text-black uppercase tracking-tighter transform -rotate-2 text-center leading-none mt-2 animate-delay-1">{t('end.title')}</h2>
+              
               {showVideoSection && (
                 <div className="w-full flex flex-col items-center animate-delay-2">
-                  <div className="w-full md:w-80 mx-auto border-4 border-black bg-black relative aspect-video shadow-inner">
-                    <video src={recordingStatus.recordedUrl} controls autoPlay loop className="w-full h-full object-contain" />
+                  <div className="w-full md:w-80 mx-auto border-4 border-black bg-zinc-950 relative aspect-video shadow-inner">
+                    <video src={recState.status.recordedUrl} controls autoPlay loop className="w-full h-full object-contain" />
                   </div>
                 </div>
               )}
               
               <div className="flex flex-col w-full gap-4 mt-2 animate-delay-3">
                 <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
-                  {canShareNative && (
-                    <button onClick={handleShareVideo} className="w-full sm:w-auto justify-center bg-[#00ff99] text-black border-4 border-black px-6 py-3 text-sm md:text-lg font-black uppercase hard-shadow hard-shadow-hover transition-all flex items-center gap-2 hover:bg-[#00cc7a]">
+                  {recState.canShareNative && (
+                    <button type="button" onClick={handleShareVideo} className="w-full sm:w-auto justify-center bg-[#00ff99] text-black border-4 border-black px-6 py-3 text-sm md:text-lg font-black uppercase hard-shadow hard-shadow-hover transition-all flex items-center gap-2 hover:bg-[#00cc7a]">
                       <span>🚀</span><span>{t('actions.share')}</span>
                     </button>
                   )}
-                  {recordingStatus.recordedUrl && (
-                    <a href={recordingStatus.recordedUrl} download={`BeatGrid_Session_${new Date().getTime()}${recordingStatus.mimeType?.includes('mp4') ? '.mp4' : '.webm'}`} className="w-full sm:w-auto justify-center bg-white text-black border-4 border-black px-6 py-3 text-sm md:text-lg font-black uppercase hard-shadow hard-shadow-hover transition-all flex items-center gap-2 hover:bg-gray-50">
+                  {recState.status.recordedUrl && (
+                    <a href={recState.status.recordedUrl} download={`BeatGrid_Session_${new Date().getTime()}${recState.status.mimeType?.includes('mp4') ? '.mp4' : '.webm'}`} className="w-full sm:w-auto justify-center bg-white text-black border-4 border-black px-6 py-3 text-sm md:text-lg font-black uppercase hard-shadow hard-shadow-hover transition-all flex items-center gap-2 hover:bg-gray-50">
                       <span>⬇</span><span>{t('actions.download')}</span>
                     </a>
                   )}
-                  <button onClick={handleRestartCurrentSession} className="w-full sm:w-auto bg-white text-black border-4 border-black px-6 py-3 text-sm md:text-lg font-black uppercase hard-shadow hard-shadow-hover transition-all hover:bg-gray-50">
+                  <button type="button" onClick={handleRestartCurrentSession} className="w-full sm:w-auto bg-white text-black border-4 border-black px-6 py-3 text-sm md:text-lg font-black uppercase hard-shadow hard-shadow-hover transition-all hover:bg-gray-50">
                     {t('actions.restart')}
                   </button>
-                  <button onClick={handleReset} className="w-full sm:w-auto bg-[#ffe600] text-black border-4 border-black px-6 py-3 text-sm md:text-lg font-black uppercase hard-shadow hard-shadow-hover transition-all hover:bg-[#ffd500]">
+                  <button type="button" onClick={handleReset} className="w-full sm:w-auto bg-[#ffe600] text-black border-4 border-black px-6 py-3 text-sm md:text-lg font-black uppercase hard-shadow hard-shadow-hover transition-all hover:bg-[#ffd500]">
                     {t('actions.new')}
                   </button>
                 </div>
@@ -1333,13 +1371,38 @@ const GameContent: React.FC = () => {
       )}
 
       <div className={`absolute inset-0 flex flex-col items-center justify-center p-4 layer-transition ${showGame ? 'visible-layer' : 'hidden-layer'}`}>
-        {appState === AppState.PLAYING && isInIntro && (
+        
+        {uiState.appState === AppState.PLAYING && uiState.isInIntro && (
           <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none px-4">
-            <h1 key={introText} className="w-full text-center wrap-break-word leading-[0.85] text-[14vw] lg:text-[12rem] font-black text-black tracking-tighter animate-bounce drop-shadow-xl select-none" style={{ fontFamily: "'Montserrat', sans-serif", textShadow: "4px 4px 0px #fff, 8px 8px 0px rgba(0,0,0,0.15)", maxWidth: "100%", wordSpacing: "0.1em" }}>{introText}</h1>
+            <style>{`
+              @keyframes rhythmicBounce {
+                0%, 100% { 
+                  transform: translate3d(0, 0, 0); 
+                  animation-timing-function: cubic-bezier(0.8, 0, 1, 1); 
+                }
+                50% { 
+                  transform: translate3d(0, -15%, 0); 
+                  animation-timing-function: cubic-bezier(0, 0, 0.2, 1); 
+                }
+              }
+            `}</style>
+            <h1 
+              key={uiState.introText} 
+              className="w-full text-center wrap-break-word leading-[0.85] text-[14vw] lg:text-[12rem] font-black text-black tracking-tighter drop-shadow-xl select-none" 
+              style={{ 
+                fontFamily: "'Montserrat', sans-serif", 
+                textShadow: "4px 4px 0px #fff, 8px 8px 0px rgba(0,0,0,0.15)", 
+                maxWidth: "100%", 
+                wordSpacing: "0.1em", 
+                animation: "rhythmicBounce 1s infinite" 
+              }}>
+              {uiState.introText}
+            </h1>
           </div>
         )}
-        {appState === AppState.PLAYING && !isInIntro && (
-            <HUD round={uiRoundInfo.round} beat={uiRoundInfo.beat} totalBeats={uiRoundInfo.totalBeats} words={words} />
+        
+        {uiState.appState === AppState.PLAYING && !uiState.isInIntro && (
+            <HUD round={uiState.uiRoundInfo.round} beat={uiState.uiRoundInfo.beat} totalBeats={uiState.uiRoundInfo.totalBeats} words={words} />
         )}
         
         <div className="relative w-full h-[85svh] max-h-[85svh] flex items-center justify-center z-10 pointer-events-none">
@@ -1359,27 +1422,32 @@ const GameContent: React.FC = () => {
             {shouldRenderOverlay && (
               <div 
                 className="absolute inset-0 z-60" 
-                style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: `repeat(${overlayCols}, 1fr)`, 
-                  gridTemplateRows: `repeat(${overlayRows}, 1fr)`, 
-                  paddingLeft: overlayPaddingX,
-                  paddingRight: overlayPaddingX,
-                  opacity: uiOverlayState.alpha, 
-                  transition: 'opacity 100ms linear, padding 100ms linear' 
-                }}
+                style={{ opacity: uiState.uiOverlayState.alpha, transition: 'opacity 100ms linear' }}
               >
-                {uiOverlayState.pattern.map((q: number, i: number) => {
-                  const safeQ = Number.isFinite(q) ? Math.max(0, Math.min(3, q)) : 0;
-                  const label = normalizedWords[safeQ] ?? '';
-                  return (
-                    <div key={i} className="relative w-full h-full">
-                      <div className="absolute left-1/2 bottom-[10%] -translate-x-1/2 px-2 py-1 bg-white/90 border-[3px] border-black rounded-lg hard-shadow-sm whitespace-nowrap z-10">
-                        <span className="block text-[10px] sm:text-xs md:text-sm font-black tracking-wider text-black uppercase leading-none">{label.toUpperCase()}</span>
+                <div 
+                  className="w-full h-full will-change-transform" 
+                  style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: `repeat(${overlayCols}, 1fr)`, 
+                    gridTemplateRows: `repeat(${overlayRows}, 1fr)`, 
+                    transform: overlayTransform, 
+                    transformOrigin: 'center center', 
+                    transition: 'transform 160ms cubic-bezier(0.16, 1, 0.3, 1)'
+                  }}
+                >
+                  {uiState.uiOverlayState.pattern.map((q: number, i: number) => {
+                    const cellKey = CELL_IDS[i] || `fallback-cell-${i}`;
+                    const safeQ = Number.isFinite(q) ? Math.max(0, Math.min(3, q)) : 0;
+                    const label = normalizedWords[safeQ] ?? '';
+                    return (
+                      <div key={cellKey} className="relative w-full h-full">
+                        <div className="absolute left-1/2 bottom-[10%] -translate-x-1/2 px-2 py-1 bg-white/90 border-[3px] border-black rounded-lg hard-shadow-sm whitespace-nowrap z-10">
+                          <span className="block text-[10px] sm:text-xs md:text-sm font-black tracking-wider text-black uppercase leading-none">{label.toUpperCase()}</span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
