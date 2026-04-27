@@ -1,57 +1,57 @@
 {
-  "nav": {
-    "prevPresetAria": "พรีเซ็ตก่อนหน้า",
-    "nextPresetAria": "พรีเซ็ตถัดไป"
-  },
-  "hero": {
-    "title": "พูดคำนั้น",
-    "subtitle": "ตามจังหวะ"
-  },
-  "wordEditor": {
-    "placeholder": "คำที่ {{index}}",
-    "start": "เริ่มเกม",
-    "generating": "กำลังสร้าง..."
-  },
-  "recording": {
-    "title": "บันทึกเกม",
-    "onHint": "วิดีโอจะถูกบันทึกเมื่อจบเกม",
-    "offHint": "เล่นอย่างเดียว (ไม่มีวิดีโอ)"
-  },
-  "end": {
-    "title": "จบเกม!"
-  },
-  "actions": {
-    "share": "แชร์",
-    "download": "ดาวน์โหลด",
-    "restart": "เริ่มใหม่",
-    "new": "ใหม่",
-    "support": "เลี้ยงกาแฟฉัน"
-  },
-  "errors": {
-    "generation": {
-      "title": "เกิดข้อผิดพลาดในการสร้างภาพ",
-      "message": "ลองใช้คำอื่น",
-      "cta": "ตกลง"
-    },
-    "share": {
-      "failed": "แชร์ไม่สำเร็จ ลองดาวน์โหลดวิดีโอแทน"
-    },
-    "video": {
-      "saveFailed": "เกิดข้อผิดพลาดในการบันทึกวิดีโอ",
-      "recordingPrefix": "ข้อผิดพลาดในการบันทึก: {{message}}"
-    },
-    "spritesheet": {
-      "loadFailed": "โหลดภาพสไปรต์ชีตไม่สำเร็จ"
-    }
-  },
-  "share": {
-    "title": "การเล่น BeatGrid",
-    "text": "สู้กับจังหวะ! https://beat.boton.one"
-  },
-  "intro": {
-    "getReady": "เตรียมตัว"
-  },
-  "canvas": {
-    "roundLabel": "รอบ"
-  }
+	"nav": {
+		"prevPresetAria": "พรีเซ็ตก่อนหน้า",
+		"nextPresetAria": "พรีเซ็ตถัดไป"
+	},
+	"hero": {
+		"title": "พูดคำนั้น",
+		"subtitle": "ตามจังหวะ"
+	},
+	"wordEditor": {
+		"placeholder": "คำที่ {{index}}",
+		"start": "เริ่มเกม",
+		"generating": "กำลังสร้าง..."
+	},
+	"recording": {
+		"title": "บันทึกเกม",
+		"onHint": "วิดีโอจะถูกบันทึกเมื่อจบเกม",
+		"offHint": "เล่นอย่างเดียว (ไม่มีวิดีโอ)"
+	},
+	"end": {
+		"title": "จบเกม!"
+	},
+	"actions": {
+		"share": "แชร์",
+		"download": "ดาวน์โหลด",
+		"restart": "เริ่มใหม่",
+		"new": "ใหม่",
+		"support": "เลี้ยงกาแฟฉัน"
+	},
+	"errors": {
+		"generation": {
+			"title": "เกิดข้อผิดพลาดในการสร้างภาพ",
+			"message": "ลองใช้คำอื่น",
+			"cta": "ตกลง"
+		},
+		"share": {
+			"failed": "แชร์ไม่สำเร็จ ลองดาวน์โหลดวิดีโอแทน"
+		},
+		"video": {
+			"saveFailed": "เกิดข้อผิดพลาดในการบันทึกวิดีโอ",
+			"recordingPrefix": "ข้อผิดพลาดในการบันทึก: {{message}}"
+		},
+		"spritesheet": {
+			"loadFailed": "โหลดภาพสไปรต์ชีตไม่สำเร็จ"
+		}
+	},
+	"share": {
+		"title": "การเล่น BeatGrid",
+		"text": "สู้กับจังหวะ! https://beat.boton.one"
+	},
+	"intro": {
+		"getReady": "เตรียมตัว"
+	},
+	"canvas": {
+		"roundLabel": "รอบ"
+	}
 }

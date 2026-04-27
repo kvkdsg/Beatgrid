@@ -1,4 +1,4 @@
-import type { BoardState } from './game.types';
+import type { BoardState } from "./game.types";
 
 const SONG_BPM = 92;
 export const SONG_OFFSET_SEC = 9;
@@ -31,10 +31,16 @@ export const RECORDING_VIDEO_LAG_MS = 175;
 export const RECORDING_TRIM_START_MS = 3000;
 export const RECORDING_TRIM_END_MS = 1000;
 
-const R1_PATTERN: BoardState =[0, 0, 0, 0, 0, 0, 0, 0];
-const R2_PATTERN: BoardState =[0, 0, 0, 0, 1, 1, 1, 1];
-const R3_PATTERN: BoardState =[0, 2, 0, 2, 1, 2, 1, 2];
-const R4_PATTERN: BoardState =[0, 2, 3, 1, 1, 3, 2, 0];
-const R5_PATTERN: BoardState =[1, 3, 0, 2, 3, 0, 1, 2];
+const R1_PATTERN: BoardState = [0, 0, 0, 0, 0, 0, 0, 0];
+const R2_PATTERN: BoardState = [0, 0, 0, 0, 1, 1, 1, 1];
+const R3_PATTERN: BoardState = [0, 2, 0, 2, 1, 2, 1, 2];
+const R4_PATTERN: BoardState = [0, 2, 3, 1, 1, 3, 2, 0];
+const R5_PATTERN: BoardState = [1, 3, 0, 2, 3, 0, 1, 2];
 
-export const ROUND_PATTERNS =[R1_PATTERN, R2_PATTERN, R3_PATTERN, R4_PATTERN, R5_PATTERN];
+export const ROUND_PATTERNS = [
+	R1_PATTERN,
+	R2_PATTERN,
+	R3_PATTERN,
+	R4_PATTERN,
+	R5_PATTERN,
+];

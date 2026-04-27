@@ -1,32 +1,24 @@
 {
-  "compilerOptions": {
-    "target": "ES2024",
-    "experimentalDecorators": true,
-    "useDefineForClassFields": false,
-    "module": "ESNext",
-    "lib": [
-      "ES2024",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "skipLibCheck": true,
-    "types": [
-      "vite/client",
-      "vite-plugin-pwa/client",
-      "node"
-    ],
-    "moduleResolution": "bundler",
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "allowJs": true,
-    "jsx": "react-jsx",
-    "paths": {
-  "@app/*": ["./app/*"],
-  "@features/*": ["./features/*"],
-  "@shared/*": ["./shared/*"],
-  "@/*": ["./*"]
-},
-    "allowImportingTsExtensions": true,
-    "noEmit": true
-  }
+	"compilerOptions": {
+		"target": "ES2024",
+		"experimentalDecorators": true,
+		"useDefineForClassFields": false,
+		"module": "ESNext",
+		"lib": ["ES2024", "DOM", "DOM.Iterable"],
+		"skipLibCheck": true,
+		"types": ["vite/client", "vite-plugin-pwa/client", "node"],
+		"moduleResolution": "bundler",
+		"isolatedModules": true,
+		"moduleDetection": "force",
+		"allowJs": true,
+		"jsx": "react-jsx",
+		"paths": {
+			"@app/*": ["./app/*"],
+			"@features/*": ["./features/*"],
+			"@shared/*": ["./shared/*"],
+			"@/*": ["./*"]
+		},
+		"allowImportingTsExtensions": true,
+		"noEmit": true
+	}
 }

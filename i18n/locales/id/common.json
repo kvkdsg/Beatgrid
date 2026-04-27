@@ -1,57 +1,57 @@
 {
-  "nav": {
-    "prevPresetAria": "Preset sebelumnya",
-    "nextPresetAria": "Preset berikutnya"
-  },
-  "hero": {
-    "title": "UCAPKAN KATANYA",
-    "subtitle": "DI IRAMA"
-  },
-  "wordEditor": {
-    "placeholder": "KATA {{index}}",
-    "start": "MULAI GAME",
-    "generating": "MEMBUAT..."
-  },
-  "recording": {
-    "title": "Rekam permainan",
-    "onHint": "Video akan disimpan di akhir",
-    "offHint": "Cukup main (tanpa video)"
-  },
-  "end": {
-    "title": "Permainan Selesai!"
-  },
-  "actions": {
-    "share": "Bagikan",
-    "download": "Unduh",
-    "restart": "Mulai ulang",
-    "new": "Baru",
-    "support": "Belikan saya kopi"
-  },
-  "errors": {
-    "generation": {
-      "title": "Gagal membuat gambar",
-      "message": "Coba kata yang berbeda",
-      "cta": "OK"
-    },
-    "share": {
-      "failed": "Gagal membagikan. Coba unduh videonya."
-    },
-    "video": {
-      "saveFailed": "Gagal menyimpan video.",
-      "recordingPrefix": "Kesalahan perekaman: {{message}}"
-    },
-    "spritesheet": {
-      "loadFailed": "Gagal memuat gambar spritesheet."
-    }
-  },
-  "share": {
-    "title": "Gameplay BeatGrid",
-    "text": "Kalahkan ritmenya! https://beat.boton.one"
-  },
-  "intro": {
-    "getReady": "SIAP-SIAP"
-  },
-  "canvas": {
-    "roundLabel": "RONDE"
-  }
+	"nav": {
+		"prevPresetAria": "Preset sebelumnya",
+		"nextPresetAria": "Preset berikutnya"
+	},
+	"hero": {
+		"title": "UCAPKAN KATANYA",
+		"subtitle": "DI IRAMA"
+	},
+	"wordEditor": {
+		"placeholder": "KATA {{index}}",
+		"start": "MULAI GAME",
+		"generating": "MEMBUAT..."
+	},
+	"recording": {
+		"title": "Rekam permainan",
+		"onHint": "Video akan disimpan di akhir",
+		"offHint": "Cukup main (tanpa video)"
+	},
+	"end": {
+		"title": "Permainan Selesai!"
+	},
+	"actions": {
+		"share": "Bagikan",
+		"download": "Unduh",
+		"restart": "Mulai ulang",
+		"new": "Baru",
+		"support": "Belikan saya kopi"
+	},
+	"errors": {
+		"generation": {
+			"title": "Gagal membuat gambar",
+			"message": "Coba kata yang berbeda",
+			"cta": "OK"
+		},
+		"share": {
+			"failed": "Gagal membagikan. Coba unduh videonya."
+		},
+		"video": {
+			"saveFailed": "Gagal menyimpan video.",
+			"recordingPrefix": "Kesalahan perekaman: {{message}}"
+		},
+		"spritesheet": {
+			"loadFailed": "Gagal memuat gambar spritesheet."
+		}
+	},
+	"share": {
+		"title": "Gameplay BeatGrid",
+		"text": "Kalahkan ritmenya! https://beat.boton.one"
+	},
+	"intro": {
+		"getReady": "SIAP-SIAP"
+	},
+	"canvas": {
+		"roundLabel": "RONDE"
+	}
 }

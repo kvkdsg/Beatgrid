@@ -1,57 +1,57 @@
 {
-  "nav": {
-    "prevPresetAria": "Preset precedente",
-    "nextPresetAria": "Preset successivo"
-  },
-  "hero": {
-    "title": "DI' LA PAROLA",
-    "subtitle": "A TEMPO"
-  },
-  "wordEditor": {
-    "placeholder": "PAROLA {{index}}",
-    "start": "INIZIA GIOCO",
-    "generating": "GENERAZIONE..."
-  },
-  "recording": {
-    "title": "Registra partita",
-    "onHint": "Il video verrà salvato alla fine",
-    "offHint": "Gioca senza video"
-  },
-  "end": {
-    "title": "Partita finita!"
-  },
-  "actions": {
-    "share": "Condividi",
-    "download": "Scarica",
-    "restart": "Ricomincia",
-    "new": "Nuovo",
-    "support": "Offrimi un caffè"
-  },
-  "errors": {
-    "generation": {
-      "title": "Errore generazione",
-      "message": "Prova con altre parole",
-      "cta": "OK"
-    },
-    "share": {
-      "failed": "Condivisione fallita. Prova a scaricare il video."
-    },
-    "video": {
-      "saveFailed": "Errore nel salvataggio del video.",
-      "recordingPrefix": "Errore registrazione: {{message}}"
-    },
-    "spritesheet": {
-      "loadFailed": "Impossibile caricare lo spritesheet."
-    }
-  },
-  "share": {
-    "title": "Gameplay BeatGrid",
-    "text": "Segui il ritmo! https://beat.boton.one"
-  },
-  "intro": {
-    "getReady": "PRONTI"
-  },
-  "canvas": {
-    "roundLabel": "ROUND"
-  }
+	"nav": {
+		"prevPresetAria": "Preset precedente",
+		"nextPresetAria": "Preset successivo"
+	},
+	"hero": {
+		"title": "DI' LA PAROLA",
+		"subtitle": "A TEMPO"
+	},
+	"wordEditor": {
+		"placeholder": "PAROLA {{index}}",
+		"start": "INIZIA GIOCO",
+		"generating": "GENERAZIONE..."
+	},
+	"recording": {
+		"title": "Registra partita",
+		"onHint": "Il video verrà salvato alla fine",
+		"offHint": "Gioca senza video"
+	},
+	"end": {
+		"title": "Partita finita!"
+	},
+	"actions": {
+		"share": "Condividi",
+		"download": "Scarica",
+		"restart": "Ricomincia",
+		"new": "Nuovo",
+		"support": "Offrimi un caffè"
+	},
+	"errors": {
+		"generation": {
+			"title": "Errore generazione",
+			"message": "Prova con altre parole",
+			"cta": "OK"
+		},
+		"share": {
+			"failed": "Condivisione fallita. Prova a scaricare il video."
+		},
+		"video": {
+			"saveFailed": "Errore nel salvataggio del video.",
+			"recordingPrefix": "Errore registrazione: {{message}}"
+		},
+		"spritesheet": {
+			"loadFailed": "Impossibile caricare lo spritesheet."
+		}
+	},
+	"share": {
+		"title": "Gameplay BeatGrid",
+		"text": "Segui il ritmo! https://beat.boton.one"
+	},
+	"intro": {
+		"getReady": "PRONTI"
+	},
+	"canvas": {
+		"roundLabel": "ROUND"
+	}
 }
