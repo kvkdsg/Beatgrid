@@ -29,8 +29,8 @@ import { useShareVideo } from "./application/useShareVideo";
 import { useGameAudio } from "./hooks/useGameAudio";
 import { useRecordingFlow } from "./hooks/useRecordingFlow";
 import {
+	GLOBAL_AUDIO_LATENCY_MS,
 	RECORDING_TRIM_START_MS,
-	RECORDING_VIDEO_LAG_MS,
 } from "./model/game.constants";
 import { AppState } from "./model/game.types";
 import { PRESETS, pickRandomPreset, wordsKey } from "./model/presets";
@@ -303,7 +303,7 @@ const GamePage: React.FC = () => {
 			const now = performance.now();
 			const visualRawTime =
 				now - syncRef.current.startTime + syncRef.current.visualOffset;
-			const warmupTimeMs = Math.max(0, visualRawTime) + RECORDING_VIDEO_LAG_MS;
+			const warmupTimeMs = Math.max(0, visualRawTime + GLOBAL_AUDIO_LATENCY_MS);
 
 			renderCompositeFrame(warmupTimeMs, {
 				forceIntro: true,

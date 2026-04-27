@@ -27,7 +27,6 @@ export const SYNC_THRESHOLD_SOFT_MS = 80;
 export const SYNC_AUDIO_EPSILON_MS = 2;
 export const SYNC_NUDGE_FACTOR = 0.05;
 export const SYNC_SAMPLE_SIZE = 15;
-export const RECORDING_VIDEO_LAG_MS = 175;
 export const RECORDING_TRIM_START_MS = 3000;
 export const RECORDING_TRIM_END_MS = 1000;
 
