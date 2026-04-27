@@ -1,57 +1,57 @@
 {
-  "nav": {
-    "prevPresetAria": "이전 프리셋",
-    "nextPresetAria": "다음 프리셋"
-  },
-  "hero": {
-    "title": "단어를 말해",
-    "subtitle": "비트에 맞춰"
-  },
-  "wordEditor": {
-    "placeholder": "단어 {{index}}",
-    "start": "게임 시작",
-    "generating": "생성 중..."
-  },
-  "recording": {
-    "title": "게임 녹화",
-    "onHint": "게임이 끝나면 영상이 저장됩니다",
-    "offHint": "그냥 플레이 (영상 없음)"
-  },
-  "end": {
-    "title": "게임 오버!"
-  },
-  "actions": {
-    "share": "공유",
-    "download": "다운로드",
-    "restart": "다시 시작",
-    "new": "새로 만들기",
-    "support": "커피 한 잔 후원"
-  },
-  "errors": {
-    "generation": {
-      "title": "이미지 생성 오류",
-      "message": "다른 단어로 시도해 보세요",
-      "cta": "확인"
-    },
-    "share": {
-      "failed": "공유에 실패했습니다. 영상을 다운로드해 보세요."
-    },
-    "video": {
-      "saveFailed": "영상 저장에 실패했습니다.",
-      "recordingPrefix": "녹화 오류: {{message}}"
-    },
-    "spritesheet": {
-      "loadFailed": "스프라이트시트 이미지를 불러오지 못했습니다."
-    }
-  },
-  "share": {
-    "title": "BeatGrid 게임플레이",
-    "text": "리듬을 이겨라! https://beat.boton.one"
-  },
-  "intro": {
-    "getReady": "준비"
-  },
-  "canvas": {
-    "roundLabel": "라운드"
-  }
+	"nav": {
+		"prevPresetAria": "이전 프리셋",
+		"nextPresetAria": "다음 프리셋"
+	},
+	"hero": {
+		"title": "단어를 말해",
+		"subtitle": "비트에 맞춰"
+	},
+	"wordEditor": {
+		"placeholder": "단어 {{index}}",
+		"start": "게임 시작",
+		"generating": "생성 중..."
+	},
+	"recording": {
+		"title": "게임 녹화",
+		"onHint": "게임이 끝나면 영상이 저장됩니다",
+		"offHint": "그냥 플레이 (영상 없음)"
+	},
+	"end": {
+		"title": "게임 오버!"
+	},
+	"actions": {
+		"share": "공유",
+		"download": "다운로드",
+		"restart": "다시 시작",
+		"new": "새로 만들기",
+		"support": "커피 한 잔 후원"
+	},
+	"errors": {
+		"generation": {
+			"title": "이미지 생성 오류",
+			"message": "다른 단어로 시도해 보세요",
+			"cta": "확인"
+		},
+		"share": {
+			"failed": "공유에 실패했습니다. 영상을 다운로드해 보세요."
+		},
+		"video": {
+			"saveFailed": "영상 저장에 실패했습니다.",
+			"recordingPrefix": "녹화 오류: {{message}}"
+		},
+		"spritesheet": {
+			"loadFailed": "스프라이트시트 이미지를 불러오지 못했습니다."
+		}
+	},
+	"share": {
+		"title": "BeatGrid 게임플레이",
+		"text": "리듬을 이겨라! https://beat.boton.one"
+	},
+	"intro": {
+		"getReady": "준비"
+	},
+	"canvas": {
+		"roundLabel": "라운드"
+	}
 }

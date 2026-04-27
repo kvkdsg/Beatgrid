@@ -1,167 +1,167 @@
 // scripts/prerender.mjs
-import path from "node:path";
+
 import fs from "node:fs/promises";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getSeoData } from "../server/seo-content.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const SUPPORTED_LOCALES =[
-  "en",
-  "es",
-  "pt-BR",
-  "fr",
-  "de",
-  "ru",
-  "ar",
-  "ja",
-  "ko",
-  "zh-Hans",
-  "it",
-  "tr",
-  "id",
-  "th",
-  "vi",
+const SUPPORTED_LOCALES = [
+	"en",
+	"es",
+	"pt-BR",
+	"fr",
+	"de",
+	"ru",
+	"ar",
+	"ja",
+	"ko",
+	"zh-Hans",
+	"it",
+	"tr",
+	"id",
+	"th",
+	"vi",
 ];
 const DEFAULT_LOCALE = "en";
 
 const DEFAULT_BOOT_WORDS = ["Beat", "Flow", "Grid", "Play"];
 
 function getBaseUrlFromEnvOrDefault() {
-  const env = String(process.env.BASE_URL || process.env.PUBLIC_BASE_URL || "").trim();
-  return env || "https://beat.boton.one";
+	const env = String(
+		process.env.BASE_URL || process.env.PUBLIC_BASE_URL || "",
+	).trim();
+	return env || "https://beat.boton.one";
 }
 
 function escapeHtml(unsafe) {
-  return String(unsafe ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+	return String(unsafe ?? "")
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
 }
 
 function buildSafeUrl(baseUrl, p) {
-  return encodeURI(`${baseUrl}${p}`);
+	return encodeURI(`${baseUrl}${p}`);
 }
 
 function parseArgs(argv) {
-  const args = {
-    distDir: null,
-    baseUrl: null,
-    clean: false,
-    locales: null,
-  };
+	const args = {
+		distDir: null,
+		baseUrl: null,
+		clean: false,
+		locales: null,
+	};
 
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
+	for (let i = 0; i < argv.length; i++) {
+		const a = argv[i];
 
-    if (a === "--dist" && argv[i + 1]) {
-      args.distDir = argv[++i];
-      continue;
-    }
-    if (a === "--base-url" && argv[i + 1]) {
-      args.baseUrl = argv[++i];
-      continue;
-    }
-    if (a === "--clean") {
-      args.clean = true;
-      continue;
-    }
-    if (a === "--locales" && argv[i + 1]) {
-      args.locales = argv[++i]
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      continue;
-    }
-  }
+		if (a === "--dist" && argv[i + 1]) {
+			args.distDir = argv[++i];
+			continue;
+		}
+		if (a === "--base-url" && argv[i + 1]) {
+			args.baseUrl = argv[++i];
+			continue;
+		}
+		if (a === "--clean") {
+			args.clean = true;
+			continue;
+		}
+		if (a === "--locales" && argv[i + 1]) {
+			args.locales = argv[++i]
+				.split(",")
+				.map((s) => s.trim())
+				.filter(Boolean);
+		}
+	}
 
-  return args;
+	return args;
 }
 
 async function pathExists(p) {
-  try {
-    await fs.access(p);
-    return true;
-  } catch {
-    return false;
-  }
+	try {
+		await fs.access(p);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 async function rmDirIfExists(dir) {
-  if (!(await pathExists(dir))) return;
-  await fs.rm(dir, { recursive: true, force: true });
+	if (!(await pathExists(dir))) return;
+	await fs.rm(dir, { recursive: true, force: true });
 }
 
-function buildHeadHtml({
-  baseUrl,
-  lang,
-  pathWithoutLang,
-  seoData,
-}) {
-  const lastMod = new Date().toISOString().split("T")[0]; 
-  void lastMod;
+function buildHeadHtml({ baseUrl, lang, pathWithoutLang, seoData }) {
+	const lastMod = new Date().toISOString().split("T")[0];
+	void lastMod;
 
-  const rawCanonicalPath = `/${lang}${pathWithoutLang === "/" ? "" : pathWithoutLang}`;
-  const canonicalUrl = buildSafeUrl(baseUrl, rawCanonicalPath);
+	const rawCanonicalPath = `/${lang}${pathWithoutLang === "/" ? "" : pathWithoutLang}`;
+	const canonicalUrl = buildSafeUrl(baseUrl, rawCanonicalPath);
 
-  const hreflangs = SUPPORTED_LOCALES.map((loc) => {
-    const p = `/${loc}${pathWithoutLang === "/" ? "" : pathWithoutLang}`;
-    return `<link rel="alternate" hreflang="${loc}" href="${buildSafeUrl(baseUrl, p)}" />`;
-  }).join("\n    ");
+	const hreflangs = SUPPORTED_LOCALES.map((loc) => {
+		const p = `/${loc}${pathWithoutLang === "/" ? "" : pathWithoutLang}`;
+		return `<link rel="alternate" hreflang="${loc}" href="${buildSafeUrl(baseUrl, p)}" />`;
+	}).join("\n    ");
 
-  const xDefaultPath = `/${DEFAULT_LOCALE}${pathWithoutLang === "/" ? "" : pathWithoutLang}`;
-  const xDefault = `<link rel="alternate" hreflang="x-default" href="${buildSafeUrl(baseUrl, xDefaultPath)}" />`;
+	const xDefaultPath = `/${DEFAULT_LOCALE}${pathWithoutLang === "/" ? "" : pathWithoutLang}`;
+	const xDefault = `<link rel="alternate" hreflang="x-default" href="${buildSafeUrl(baseUrl, xDefaultPath)}" />`;
 
-  const rawTitle = seoData.title;
-  const rawDesc = seoData.description;
-  const rawKeywords = seoData.keywords;
+	const rawTitle = seoData.title;
+	const rawDesc = seoData.description;
+	const rawKeywords = seoData.keywords;
 
-  const safeTitle = escapeHtml(rawTitle);
-  const safeDesc = escapeHtml(rawDesc);
-  const safeKeywords = escapeHtml(rawKeywords);
+	const safeTitle = escapeHtml(rawTitle);
+	const safeDesc = escapeHtml(rawDesc);
+	const safeKeywords = escapeHtml(rawKeywords);
 
-  const websiteSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "BeatGrid",
-    "alternateName": ["Beat Grid", "BeatGrid Game"],
-    "url": baseUrl
-  };
+	const websiteSchema = {
+		"@context": "https://schema.org",
+		"@type": "WebSite",
+		name: "BeatGrid",
+		alternateName: ["Beat Grid", "BeatGrid Game"],
+		url: baseUrl,
+	};
 
-  const gameSchema = {
-    "@context": "https://schema.org",
-    "@type": "VideoGame",
-    "name": "BeatGrid",
-    "description": rawDesc,
-    "inLanguage": lang,
-    "author": { 
-        "@type": "Organization", 
-        "name": "BotonOne",
-        "url": baseUrl,
-        "logo": {
-            "@type": "ImageObject",
-            "url": `${baseUrl}/pwa/icon-512.png` 
-        }
-    },
-    "image": `${baseUrl}/images/og-preview.jpg`,
-    "keywords": rawKeywords,
-    "applicationCategory": "Game",
-  };
+	const gameSchema = {
+		"@context": "https://schema.org",
+		"@type": "VideoGame",
+		name: "BeatGrid",
+		description: rawDesc,
+		inLanguage: lang,
+		author: {
+			"@type": "Organization",
+			name: "BotonOne",
+			url: baseUrl,
+			logo: {
+				"@type": "ImageObject",
+				url: `${baseUrl}/pwa/icon-512.png`,
+			},
+		},
+		image: `${baseUrl}/images/og-preview.jpg`,
+		keywords: rawKeywords,
+		applicationCategory: "Game",
+	};
 
-  const safeWebsiteJsonLd = JSON.stringify(websiteSchema).replace(/</g, "\\u003c");
-  const safeGameJsonLd = JSON.stringify(gameSchema).replace(/</g, "\\u003c");
-  
-  const boot = {
-    lang,
-    routeKind: "root",
-    words: DEFAULT_BOOT_WORDS,
-  };
-  const safeBoot = JSON.stringify(boot).replace(/</g, "\\u003c");
+	const safeWebsiteJsonLd = JSON.stringify(websiteSchema).replace(
+		/</g,
+		"\\u003c",
+	);
+	const safeGameJsonLd = JSON.stringify(gameSchema).replace(/</g, "\\u003c");
 
-  return `
+	const boot = {
+		lang,
+		routeKind: "root",
+		words: DEFAULT_BOOT_WORDS,
+	};
+	const safeBoot = JSON.stringify(boot).replace(/</g, "\\u003c");
+
+	return `
     <title>${safeTitle}</title>
     <meta name="description" content="${safeDesc}" />
     <meta name="keywords" content="${safeKeywords}" />
@@ -192,14 +192,14 @@ function buildHeadHtml({
 }
 
 function buildAppShellHtml({ lang, seoData }) {
-  const safeH1 = escapeHtml(seoData.h1);
-  const safeP = escapeHtml(seoData.p);
-  const safeCta = escapeHtml(seoData.cta);
+	const safeH1 = escapeHtml(seoData.h1);
+	const safeP = escapeHtml(seoData.p);
+	const safeCta = escapeHtml(seoData.cta);
 
-  const wordsChipsHtml = DEFAULT_BOOT_WORDS.map((w, i) => {
-    const safeW = escapeHtml(w);
-    const safeAria = escapeHtml(`Word ${i + 1}`);
-    return `
+	const wordsChipsHtml = DEFAULT_BOOT_WORDS.map((w, i) => {
+		const safeW = escapeHtml(w);
+		const safeAria = escapeHtml(`Word ${i + 1}`);
+		return `
       <div class="group relative bg-white border-4 border-black p-2 md:p-3 transition-all duration-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
         <div class="flex justify-start mb-0">
           <span class="text-[10px] md:text-xs font-black text-white bg-black px-1.5 py-0.5 tracking-widest border-2 border-transparent">•</span>
@@ -216,9 +216,9 @@ function buildAppShellHtml({ lang, seoData }) {
         />
       </div>
     `.trim();
-  }).join("\n");
+	}).join("\n");
 
-  return `
+	return `
 <div class="ssr-shell" id="ssr-shell" data-ssr-shell="true">
   <div class="h-100svh min-h-100svh w-full relative overflow-hidden bg-[#f0f0f0] box-border">
     <img
@@ -330,78 +330,83 @@ function buildAppShellHtml({ lang, seoData }) {
 }
 
 function injectIntoTemplate({ template, headHtml, appShellHtml, lang }) {
-  if (!template.includes("<!--__INJECT_HEAD__-->") || !template.includes("<!--__INJECT_APP_SHELL__-->")) {
-    throw new Error(
-      "index.html template missing injection markers <!--__INJECT_HEAD__--> / <!--__INJECT_APP_SHELL__-->"
-    );
-  }
+	if (
+		!template.includes("<!--__INJECT_HEAD__-->") ||
+		!template.includes("<!--__INJECT_APP_SHELL__-->")
+	) {
+		throw new Error(
+			"index.html template missing injection markers <!--__INJECT_HEAD__--> / <!--__INJECT_APP_SHELL__-->",
+		);
+	}
 
-  const dir = lang === "ar" ? "rtl" : "ltr";
+	const dir = lang === "ar" ? "rtl" : "ltr";
 
-  return template
-    .replace("<!--__INJECT_HEAD__-->", headHtml)
-    .replace("<!--__INJECT_APP_SHELL__-->", appShellHtml)
-    .replace(/<html[^>]*>/, `<html lang="${lang}" dir="${dir}">`);
+	return template
+		.replace("<!--__INJECT_HEAD__-->", headHtml)
+		.replace("<!--__INJECT_APP_SHELL__-->", appShellHtml)
+		.replace(/<html[^>]*>/, `<html lang="${lang}" dir="${dir}">`);
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
+	const args = parseArgs(process.argv.slice(2));
 
-  const projectRoot = path.resolve(__dirname, "..");
-  const distDir = path.resolve(projectRoot, args.distDir || "dist");
-  const baseUrl = String(args.baseUrl || getBaseUrlFromEnvOrDefault()).trim();
+	const projectRoot = path.resolve(__dirname, "..");
+	const distDir = path.resolve(projectRoot, args.distDir || "dist");
+	const baseUrl = String(args.baseUrl || getBaseUrlFromEnvOrDefault()).trim();
 
-  const locales = (args.locales && args.locales.length ? args.locales : SUPPORTED_LOCALES).filter((l) =>
-    SUPPORTED_LOCALES.includes(l)
-  );
+	const locales = (
+		args.locales?.length ? args.locales : SUPPORTED_LOCALES
+	).filter((l) => SUPPORTED_LOCALES.includes(l));
 
-  if (!locales.length) {
-    throw new Error("No valid locales to prerender. Check --locales or SUPPORTED_LOCALES.");
-  }
+	if (!locales.length) {
+		throw new Error(
+			"No valid locales to prerender. Check --locales or SUPPORTED_LOCALES.",
+		);
+	}
 
-  const templatePath = path.join(distDir, "index.html");
-  const template = await fs.readFile(templatePath, "utf-8");
+	const templatePath = path.join(distDir, "index.html");
+	const template = await fs.readFile(templatePath, "utf-8");
 
-  const outRoot = distDir;
+	const outRoot = distDir;
 
-  if (args.clean) {
-    for (const loc of locales) {
-      await rmDirIfExists(path.join(outRoot, loc));
-    }
-  }
+	if (args.clean) {
+		for (const loc of locales) {
+			await rmDirIfExists(path.join(outRoot, loc));
+		}
+	}
 
-  for (const lang of locales) {
-    const seoData = getSeoData(lang);
+	for (const lang of locales) {
+		const seoData = getSeoData(lang);
 
-    const headHtml = buildHeadHtml({
-      baseUrl,
-      lang,
-      pathWithoutLang: "/",
-      seoData,
-    });
+		const headHtml = buildHeadHtml({
+			baseUrl,
+			lang,
+			pathWithoutLang: "/",
+			seoData,
+		});
 
-    const appShellHtml = buildAppShellHtml({ lang, seoData });
+		const appShellHtml = buildAppShellHtml({ lang, seoData });
 
-    const finalHtml = injectIntoTemplate({
-      template,
-      headHtml,
-      appShellHtml,
-      lang,
-    });
+		const finalHtml = injectIntoTemplate({
+			template,
+			headHtml,
+			appShellHtml,
+			lang,
+		});
 
-    const outDir = path.join(outRoot, lang);
-    const outPath = path.join(outDir, "index.html");
+		const outDir = path.join(outRoot, lang);
+		const outPath = path.join(outDir, "index.html");
 
-    await fs.mkdir(outDir, { recursive: true });
-    await fs.writeFile(outPath, finalHtml, "utf-8");
-  }
+		await fs.mkdir(outDir, { recursive: true });
+		await fs.writeFile(outPath, finalHtml, "utf-8");
+	}
 
-  process.stdout.write(
-    `✅ prerender.mjs: Generated ${locales.length} localized pages into ${distDir}/<locale>/index.html (baseUrl=${baseUrl})\n`
-  );
+	process.stdout.write(
+		`✅ prerender.mjs: Generated ${locales.length} localized pages into ${distDir}/<locale>/index.html (baseUrl=${baseUrl})\n`,
+	);
 }
 
 main().catch((err) => {
-  process.stderr.write(`❌ prerender.mjs failed: ${err?.stack || err}\n`);
-  process.exitCode = 1;
+	process.stderr.write(`❌ prerender.mjs failed: ${err?.stack || err}\n`);
+	process.exitCode = 1;
 });

@@ -1,57 +1,57 @@
 {
-  "nav": {
-    "prevPresetAria": "الإعداد السابق",
-    "nextPresetAria": "الإعداد التالي"
-  },
-  "hero": {
-    "title": "قُلِ الكَلِمَة",
-    "subtitle": "مَعَ الإِيقَاع"
-  },
-  "wordEditor": {
-    "placeholder": "الكلمة {{index}}",
-    "start": "ابدأ اللعبة",
-    "generating": "جارٍ الإنشاء..."
-  },
-  "recording": {
-    "title": "سجّل اللعبة",
-    "onHint": "سيتم حفظ الفيديو في النهاية",
-    "offHint": "العب فقط (بدون فيديو)"
-  },
-  "end": {
-    "title": "انتهت اللعبة!"
-  },
-  "actions": {
-    "share": "مشاركة",
-    "download": "تنزيل",
-    "restart": "إعادة اللعب",
-    "new": "جديدة",
-    "support": "اشترِ لي قهوة"
-  },
-  "errors": {
-    "generation": {
-      "title": "خطأ في إنشاء الصورة",
-      "message": "جرّب كلمات مختلفة",
-      "cta": "حسنًا"
-    },
-    "share": {
-      "failed": "فشلت المشاركة. جرّب تنزيل الفيديو."
-    },
-    "video": {
-      "saveFailed": "خطأ في حفظ الفيديو.",
-      "recordingPrefix": "خطأ في التسجيل: {{message}}"
-    },
-    "spritesheet": {
-      "loadFailed": "تعذر تحميل صورة الـ spritesheet."
-    }
-  },
-  "share": {
-    "title": "طريقة لعب BeatGrid",
-    "text": "تغلّب على الإيقاع! https://beat.boton.one"
-  },
-  "intro": {
-    "getReady": "استعد"
-  },
-  "canvas": {
-    "roundLabel": "الجولة"
-  }
+	"nav": {
+		"prevPresetAria": "الإعداد السابق",
+		"nextPresetAria": "الإعداد التالي"
+	},
+	"hero": {
+		"title": "قُلِ الكَلِمَة",
+		"subtitle": "مَعَ الإِيقَاع"
+	},
+	"wordEditor": {
+		"placeholder": "الكلمة {{index}}",
+		"start": "ابدأ اللعبة",
+		"generating": "جارٍ الإنشاء..."
+	},
+	"recording": {
+		"title": "سجّل اللعبة",
+		"onHint": "سيتم حفظ الفيديو في النهاية",
+		"offHint": "العب فقط (بدون فيديو)"
+	},
+	"end": {
+		"title": "انتهت اللعبة!"
+	},
+	"actions": {
+		"share": "مشاركة",
+		"download": "تنزيل",
+		"restart": "إعادة اللعب",
+		"new": "جديدة",
+		"support": "اشترِ لي قهوة"
+	},
+	"errors": {
+		"generation": {
+			"title": "خطأ في إنشاء الصورة",
+			"message": "جرّب كلمات مختلفة",
+			"cta": "حسنًا"
+		},
+		"share": {
+			"failed": "فشلت المشاركة. جرّب تنزيل الفيديو."
+		},
+		"video": {
+			"saveFailed": "خطأ في حفظ الفيديو.",
+			"recordingPrefix": "خطأ في التسجيل: {{message}}"
+		},
+		"spritesheet": {
+			"loadFailed": "تعذر تحميل صورة الـ spritesheet."
+		}
+	},
+	"share": {
+		"title": "طريقة لعب BeatGrid",
+		"text": "تغلّب على الإيقاع! https://beat.boton.one"
+	},
+	"intro": {
+		"getReady": "استعد"
+	},
+	"canvas": {
+		"roundLabel": "الجولة"
+	}
 }

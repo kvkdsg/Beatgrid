@@ -1,57 +1,57 @@
 {
-  "nav": {
-    "prevPresetAria": "Önceki preset",
-    "nextPresetAria": "Sonraki preset"
-  },
-  "hero": {
-    "title": "KELİMEYİ SÖYLE",
-    "subtitle": "RİTİMDE"
-  },
-  "wordEditor": {
-    "placeholder": "KELİME {{index}}",
-    "start": "OYUNU BAŞLAT",
-    "generating": "OLUŞTURULUYOR..."
-  },
-  "recording": {
-    "title": "Oyunu kaydet",
-    "onHint": "Video en sonunda kaydedilecek",
-    "offHint": "Sadece oyna (video yok)"
-  },
-  "end": {
-    "title": "Oyun Bitti!"
-  },
-  "actions": {
-    "share": "Paylaş",
-    "download": "İndir",
-    "restart": "Yeniden başlat",
-    "new": "Yeni",
-    "support": "Bana bir kahve ısmarlayın"
-  },
-  "errors": {
-    "generation": {
-      "title": "Görsel oluşturulurken hata",
-      "message": "Farklı kelimeler deneyin",
-      "cta": "Tamam"
-    },
-    "share": {
-      "failed": "Paylaşım başarısız oldu. Videoyu indirip deneyin."
-    },
-    "video": {
-      "saveFailed": "Video kaydedilirken hata oluştu.",
-      "recordingPrefix": "Kayıt hatası: {{message}}"
-    },
-    "spritesheet": {
-      "loadFailed": "Spritesheet görseli yüklenemedi."
-    }
-  },
-  "share": {
-    "title": "BeatGrid Oynanış",
-    "text": "Ritmi yakala! https://beat.boton.one"
-  },
-  "intro": {
-    "getReady": "HAZIR OL"
-  },
-  "canvas": {
-    "roundLabel": "RAUND"
-  }
+	"nav": {
+		"prevPresetAria": "Önceki preset",
+		"nextPresetAria": "Sonraki preset"
+	},
+	"hero": {
+		"title": "KELİMEYİ SÖYLE",
+		"subtitle": "RİTİMDE"
+	},
+	"wordEditor": {
+		"placeholder": "KELİME {{index}}",
+		"start": "OYUNU BAŞLAT",
+		"generating": "OLUŞTURULUYOR..."
+	},
+	"recording": {
+		"title": "Oyunu kaydet",
+		"onHint": "Video en sonunda kaydedilecek",
+		"offHint": "Sadece oyna (video yok)"
+	},
+	"end": {
+		"title": "Oyun Bitti!"
+	},
+	"actions": {
+		"share": "Paylaş",
+		"download": "İndir",
+		"restart": "Yeniden başlat",
+		"new": "Yeni",
+		"support": "Bana bir kahve ısmarlayın"
+	},
+	"errors": {
+		"generation": {
+			"title": "Görsel oluşturulurken hata",
+			"message": "Farklı kelimeler deneyin",
+			"cta": "Tamam"
+		},
+		"share": {
+			"failed": "Paylaşım başarısız oldu. Videoyu indirip deneyin."
+		},
+		"video": {
+			"saveFailed": "Video kaydedilirken hata oluştu.",
+			"recordingPrefix": "Kayıt hatası: {{message}}"
+		},
+		"spritesheet": {
+			"loadFailed": "Spritesheet görseli yüklenemedi."
+		}
+	},
+	"share": {
+		"title": "BeatGrid Oynanış",
+		"text": "Ritmi yakala! https://beat.boton.one"
+	},
+	"intro": {
+		"getReady": "HAZIR OL"
+	},
+	"canvas": {
+		"roundLabel": "RAUND"
+	}
 }
