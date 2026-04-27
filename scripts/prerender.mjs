@@ -45,6 +45,15 @@ function escapeHtml(unsafe) {
 		.replace(/'/g, "&#39;");
 }
 
+function safeJsonForHtml(value) {
+	return JSON.stringify(value)
+		.replace(/</g, "\\u003c")
+		.replace(/>/g, "\\u003e")
+		.replace(/&/g, "\\u0026")
+		.replace(/\u2028/g, "\\u2028")
+		.replace(/\u2029/g, "\\u2029");
+}
+
 function buildSafeUrl(baseUrl, p) {
 	return encodeURI(`${baseUrl}${p}`);
 }
@@ -148,18 +157,15 @@ function buildHeadHtml({ baseUrl, lang, pathWithoutLang, seoData }) {
 		applicationCategory: "Game",
 	};
 
-	const safeWebsiteJsonLd = JSON.stringify(websiteSchema).replace(
-		/</g,
-		"\\u003c",
-	);
-	const safeGameJsonLd = JSON.stringify(gameSchema).replace(/</g, "\\u003c");
+	const safeWebsiteJsonLd = safeJsonForHtml(websiteSchema);
+	const safeGameJsonLd = safeJsonForHtml(gameSchema);
 
 	const boot = {
 		lang,
 		routeKind: "root",
 		words: DEFAULT_BOOT_WORDS,
 	};
-	const safeBoot = JSON.stringify(boot).replace(/</g, "\\u003c");
+	const safeBoot = safeJsonForHtml(boot);
 
 	return `
     <title>${safeTitle}</title>
@@ -187,7 +193,7 @@ function buildHeadHtml({ baseUrl, lang, pathWithoutLang, seoData }) {
     <script type="application/ld+json">${safeWebsiteJsonLd}</script>
     <script type="application/ld+json">${safeGameJsonLd}</script>
     
-    <script>window.__BOOT__=${safeBoot};</script>
+    <script id="boot-data" type="application/json">${safeBoot}</script>
   `.trim();
 }
 
