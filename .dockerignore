@@ -1,18 +1,30 @@
-.gcloudignore
-.git
+# Evitar enviar el historial de git (esto acelera muchísimo el build)
+.git/
 .gitignore
-node_modules
-.next
-dist
-build
-coverage
-.tmp
-.cache
-**/*.log
-**/*.tgz
-**/*.zip
-**/*.tar
-Dockerfile.local
-.md
-.yaml
+
+# Dependencias locales (Docker las instalará por su cuenta)
+node_modules/
+dist/
+
+# Variables de entorno locales (Nunca meterlas en la imagen base)
+.env
+.env*.local
 .env.local
+
+# Archivos de caché y logs
+.vite/
+coverage/
+*.log
+
+# Archivos del editor y SO
+.vscode/
+.idea/
+.DS_Store
+
+# Archivos de documentación e infraestructura que no necesita el contenedor para correr
+README.md
+LICENSE
+cloudbuild.yaml
+cloudbuild-ci.yaml
+deploy.mc
+deploy.md
