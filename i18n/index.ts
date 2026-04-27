@@ -12,15 +12,6 @@ import {
 	toSupportedLocale,
 } from "./config";
 
-declare global {
-	interface Window {
-		__BOOT__?: {
-			lang?: string;
-			[k: string]: unknown;
-		};
-	}
-}
-
 const commonLoaders = import.meta.glob("./locales/*/common.json") as Record<
 	string,
 	() => Promise<{ default: Record<string, unknown> }>
@@ -90,10 +81,23 @@ function readPathLocale(): AppLocale | null {
 }
 
 function readBootLocale(): AppLocale | null {
-	if (typeof window === "undefined") return null;
+	if (typeof document === "undefined") return null;
+
 	try {
-		const bootLang = window.__BOOT__?.lang;
-		return toSupportedLocale(bootLang);
+		const scriptTag = document.getElementById("boot-data");
+		if (!scriptTag?.textContent) return null;
+
+		const parsed: unknown = JSON.parse(scriptTag.textContent);
+
+		// Type-guard estricto
+		if (parsed && typeof parsed === "object" && "lang" in parsed) {
+			const langValue = (parsed as Record<string, unknown>).lang;
+			return toSupportedLocale(
+				typeof langValue === "string" ? langValue : String(langValue),
+			);
+		}
+
+		return null;
 	} catch {
 		return null;
 	}
