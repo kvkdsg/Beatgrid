@@ -1,3 +1,4 @@
+import type React from "react";
 import { useCallback, useEffect } from "react";
 import type { GameState } from "../domain/engine/engine";
 import { getGameStateAtTime } from "../domain/engine/engine";
@@ -22,8 +23,15 @@ import type { useGameSession } from "./useGameSession";
 
 const BASE_W = 1600;
 const BASE_H = 800;
+const BASE_COLS = 4;
+const BASE_ROWS = 2;
+
 const VERTICAL_W = 900;
 const VERTICAL_H = 1600;
+const VERTICAL_COLS = 2;
+const VERTICAL_CELL_SIZE = 400;
+const VERTICAL_GRID_W = VERTICAL_COLS * VERTICAL_CELL_SIZE;
+const VERTICAL_GRID_X = (VERTICAL_W - VERTICAL_GRID_W) / 2;
 
 interface GameLoopDeps {
 	appState: AppState;
@@ -104,29 +112,45 @@ export function useGameLoop({
 			const dst = viewCanvasRef.current;
 			const container = canvasContainerRef.current;
 			if (!src || !dst) return;
+
 			const dstCtx = dst.getContext("2d", { alpha: true });
 			if (!dstCtx) return;
+
 			const currentW = BASE_W + (VERTICAL_W - BASE_W) * progress;
 			const currentH = BASE_H + (VERTICAL_H - BASE_H) * progress;
+
 			if (
 				dst.width !== Math.round(currentW) ||
 				dst.height !== Math.round(currentH)
 			) {
 				dst.width = Math.round(currentW);
 				dst.height = Math.round(currentH);
-			} else dstCtx.clearRect(0, 0, dst.width, dst.height);
+			} else {
+				dstCtx.clearRect(0, 0, dst.width, dst.height);
+			}
+
 			lastLayoutProgressRef.current = progress;
-			if (container)
+
+			if (container) {
 				container.style.aspectRatio = (currentW / currentH).toString();
-			const srcCellW = src.width / 4;
-			const srcCellH = src.height / 2;
-			for (let i = 0; i < 8; i++) {
-				const sx = (i % 4) * srcCellW;
-				const sy = Math.floor(i / 4) * srcCellH;
-				const startX = (i % 4) * srcCellW;
-				const startY = Math.floor(i / 4) * srcCellH;
-				const endX = (VERTICAL_W - 800) / 2 + (i % 2) * 400;
-				const endY = Math.floor(i / 2) * 400;
+			}
+
+			const srcCellW = src.width / BASE_COLS;
+			const srcCellH = src.height / BASE_ROWS;
+
+			for (let i = 0; i < BASE_COLS * BASE_ROWS; i++) {
+				const startCol = i % BASE_COLS;
+				const startRow = Math.floor(i / BASE_COLS);
+				const endCol = i % VERTICAL_COLS;
+				const endRow = Math.floor(i / VERTICAL_COLS);
+
+				const sx = startCol * srcCellW;
+				const sy = startRow * srcCellH;
+				const startX = startCol * srcCellW;
+				const startY = startRow * srcCellH;
+				const endX = VERTICAL_GRID_X + endCol * VERTICAL_CELL_SIZE;
+				const endY = endRow * VERTICAL_CELL_SIZE;
+
 				dstCtx.drawImage(
 					src,
 					sx,
@@ -135,8 +159,8 @@ export function useGameLoop({
 					srcCellH,
 					startX + (endX - startX) * progress,
 					startY + (endY - startY) * progress,
-					srcCellW + (400 - srcCellW) * progress,
-					srcCellH + (400 - srcCellH) * progress,
+					srcCellW + (VERTICAL_CELL_SIZE - srcCellW) * progress,
+					srcCellH + (VERTICAL_CELL_SIZE - srcCellH) * progress,
 				);
 			}
 		},
@@ -152,6 +176,7 @@ export function useGameLoop({
 				!spritesheetRef.current
 			)
 				return;
+
 			const targetLayout = isMobileVertical ? 1 : 0;
 			const diff = targetLayout - layoutAnimRef.current;
 			if (Math.abs(diff) > 0.001) layoutAnimRef.current += diff * 0.1;
@@ -179,11 +204,13 @@ export function useGameLoop({
 							syncRef.current.driftSamples.shift();
 						syncRef.current.lastAudioTime = audioTimeMs;
 					}
+
 					const avgDrift =
 						syncRef.current.driftSamples.length > 0
 							? syncRef.current.driftSamples.reduce((a, b) => a + b, 0) /
 								syncRef.current.driftSamples.length
 							: 0;
+
 					if (Math.abs(avgDrift) > SYNC_THRESHOLD_IGNORE_MS) {
 						if (Math.abs(avgDrift) < SYNC_THRESHOLD_SOFT_MS)
 							syncRef.current.visualOffset += Math.max(
@@ -202,12 +229,14 @@ export function useGameLoop({
 				}
 				visualRawTime =
 					now - syncRef.current.startTime + syncRef.current.visualOffset;
-			} else if (!audioRef.current && startTimeRef.current)
+			} else if (!audioRef.current && startTimeRef.current) {
 				visualRawTime = now - startTimeRef.current;
+			}
 
 			const visualTimeMs = Math.max(0, visualRawTime + GLOBAL_AUDIO_LATENCY_MS);
 			const recordingBaseTimeMs = Math.max(0, visualRawTime);
 			const offsetMs = SONG_OFFSET_SEC * 1000;
+
 			applyCornerDance(visualTimeMs);
 
 			if (!rendererRef.current && CanvasRendererClassRef.current)
@@ -215,10 +244,12 @@ export function useGameLoop({
 					canvasRef.current,
 					spritesheetRef.current,
 				);
+
 			if (!rendererRef.current) return;
 
 			if (isRecordingActiveRef.current) {
 				const recordingTimeMs = recordingBaseTimeMs + RECORDING_VIDEO_LAG_MS;
+
 				if (recordingTimeMs < offsetMs) {
 					const timeRemaining = offsetMs - recordingTimeMs;
 					const alpha =
@@ -234,6 +265,7 @@ export function useGameLoop({
 									)
 								: 1
 							: 0;
+
 					rendererRef.current.render(
 						canvasRef.current.width,
 						canvasRef.current.height,
@@ -243,6 +275,7 @@ export function useGameLoop({
 						0,
 						-1,
 					);
+
 					renderCompositeFrame(recordingTimeMs, {
 						forceIntro: true,
 						introTextOverride:
@@ -266,6 +299,7 @@ export function useGameLoop({
 						recordingTimeMs - offsetMs,
 						timelineRef.current,
 					);
+
 					rendererRef.current.render(
 						canvasRef.current.width,
 						canvasRef.current.height,
@@ -276,6 +310,7 @@ export function useGameLoop({
 							timelineRef.current.msPerBeat,
 						recStateLoc.activeCellIndex,
 					);
+
 					renderCompositeFrame(recordingTimeMs, {
 						gameStateOverride: recStateLoc,
 					});
@@ -284,14 +319,19 @@ export function useGameLoop({
 
 			if (visualTimeMs < offsetMs) {
 				const timeRemaining = offsetMs - visualTimeMs;
+
 				setUiState((prev) => {
 					const changes: Partial<UiState> = {};
+
 					if (!prev.isInIntro) changes.isInIntro = true;
+
 					const nt =
 						Math.ceil(timeRemaining / 1000 / (60 / DEFAULT_BPM)) > 4
 							? getReadyText
 							: Math.ceil(timeRemaining / 1000 / (60 / DEFAULT_BPM)).toString();
+
 					if (nt !== prev.introText) changes.introText = nt;
+
 					if (timeRemaining <= CELL_LABEL_DURATION_MS) {
 						const alpha =
 							CELL_LABEL_FADE_IN_MS > 0
@@ -304,6 +344,7 @@ export function useGameLoop({
 										),
 									)
 								: 1;
+
 						if (
 							prev.uiOverlayState.alpha !== alpha ||
 							!prev.uiOverlayState.show
@@ -313,10 +354,13 @@ export function useGameLoop({
 								alpha,
 								pattern: timelineRef.current?.rounds[0].pattern ?? [],
 							};
-					} else if (prev.uiOverlayState.show)
+					} else if (prev.uiOverlayState.show) {
 						changes.uiOverlayState = { ...prev.uiOverlayState, show: false };
+					}
+
 					return Object.keys(changes).length > 0 ? changes : null;
 				});
+
 				rendererRef.current.render(
 					canvasRef.current.width,
 					canvasRef.current.height,
@@ -326,28 +370,34 @@ export function useGameLoop({
 					0,
 					-1,
 				);
+
 				projectToViewCanvas(layoutAnimRef.current);
 				requestRef.current = requestAnimationFrame(loop);
 				return;
 			}
 
 			const gameTimeMs = visualTimeMs - offsetMs;
+
 			engineStateRef.current = getGameStateAtTime(
 				gameTimeMs,
 				timelineRef.current,
 				engineStateRef.current,
 			);
+
 			const state = engineStateRef.current;
 
 			setUiState((prev) => {
 				const changes: Partial<UiState> = {};
+
 				if (prev.isInIntro) changes.isInIntro = false;
+
 				if (state.roundNumber !== prev.uiRoundInfo.round)
 					changes.uiRoundInfo = {
 						round: state.roundNumber,
 						beat: 0,
 						totalBeats: timelineRef.current?.totalBeats ?? 0,
 					};
+
 				if (
 					state.showCellLabels !== prev.uiOverlayState.show ||
 					Math.abs(state.cellLabelsAlpha - prev.uiOverlayState.alpha) > 0.05
@@ -357,6 +407,7 @@ export function useGameLoop({
 						alpha: state.cellLabelsAlpha,
 						pattern: state.currentPattern,
 					};
+
 				return Object.keys(changes).length > 0 ? changes : null;
 			});
 
@@ -375,6 +426,7 @@ export function useGameLoop({
 					)
 				) {
 					recordingStoppedRef.current = true;
+
 					rendererRef.current.render(
 						canvasRef.current.width,
 						canvasRef.current.height,
@@ -384,12 +436,15 @@ export function useGameLoop({
 						0,
 						-1,
 					);
+
 					renderCompositeFrame(recordingBaseTimeMs + RECORDING_VIDEO_LAG_MS, {
 						gameStateOverride: state,
 					});
+
 					const activeRecorder = recordingServiceRef.current;
 					recordingServiceRef.current = null;
 					isRecordingActiveRef.current = false;
+
 					if (activeRecorder)
 						activeRecorder
 							.stopRecording()
@@ -413,11 +468,13 @@ export function useGameLoop({
 
 			if (state.isFinished) {
 				cancelRafIfAny();
+
 				if (audioRef.current) {
 					audioRef.current.pause();
 					audioRef.current.currentTime = 0;
 					audioRef.current.removeEventListener("playing", performAudioLock);
 				}
+
 				if (isRecordingActiveRef.current && !recordingStoppedRef.current) {
 					rendererRef.current.render(
 						canvasRef.current.width,
@@ -428,12 +485,15 @@ export function useGameLoop({
 						0,
 						-1,
 					);
+
 					renderCompositeFrame(recordingBaseTimeMs + RECORDING_VIDEO_LAG_MS, {
 						gameStateOverride: state,
 					});
+
 					const activeRecorder = recordingServiceRef.current;
 					recordingServiceRef.current = null;
 					isRecordingActiveRef.current = false;
+
 					if (activeRecorder)
 						activeRecorder
 							.stopRecording()
@@ -451,8 +511,10 @@ export function useGameLoop({
 									error: "Error guardando video.",
 								}),
 							);
-				} else if (!recordingStoppedRef.current)
+				} else if (!recordingStoppedRef.current) {
 					setRecStatus({ isRecording: false });
+				}
+
 				setUiState({ appState: AppState.FINISHED });
 				resetCornerTransform();
 				return;
@@ -468,6 +530,7 @@ export function useGameLoop({
 					timelineRef.current.msPerBeat,
 				state.activeCellIndex,
 			);
+
 			projectToViewCanvas(layoutAnimRef.current);
 			requestRef.current = requestAnimationFrame(loop);
 		},
@@ -504,6 +567,7 @@ export function useGameLoop({
 	useEffect(() => {
 		if (appState === AppState.PLAYING)
 			requestRef.current = requestAnimationFrame(animate);
+
 		return () => cancelRafIfAny();
 	}, [appState, animate, cancelRafIfAny, requestRef]);
 }

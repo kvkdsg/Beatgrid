@@ -5,6 +5,8 @@ import HUD from "./HUD";
 
 const BASE_W = 1600;
 const BASE_H = 800;
+const VERTICAL_W = 900;
+const VERTICAL_GRID_W = 800;
 const CELL_IDS = [
 	"cell-0",
 	"cell-1",
@@ -60,9 +62,10 @@ export const GameStage: React.FC<GameStageProps> = ({
 }) => {
 	const overlayCols = isMobileVertical ? 2 : 4;
 	const overlayRows = isMobileVertical ? 4 : 2;
-	const overlayTransform = isMobileVertical
-		? "translateX(5.55%) scaleX(0.889)"
-		: "translateX(0) scaleX(1)";
+
+	const overlayGridWidth = isMobileVertical
+		? `${(VERTICAL_GRID_W / VERTICAL_W) * 100}%`
+		: "100%";
 
 	return (
 		<div
@@ -128,41 +131,48 @@ export const GameStage: React.FC<GameStageProps> = ({
 						style={{ background: "transparent" }}
 						className="block w-full h-full object-contain"
 					/>
+
 					{shouldRenderOverlay && (
 						<div
-							className="absolute inset-0 z-60"
+							className="absolute inset-0 z-60 pointer-events-none"
 							style={{
 								opacity: overlayAlpha,
 								transition: "opacity 100ms linear",
 							}}
 						>
 							<div
-								className="w-full h-full will-change-transform"
+								className="absolute inset-y-0 left-1/2 -translate-x-1/2"
 								style={{
-									display: "grid",
-									gridTemplateColumns: `repeat(${overlayCols}, 1fr)`,
-									gridTemplateRows: `repeat(${overlayRows}, 1fr)`,
-									transform: overlayTransform,
-									transformOrigin: "center center",
-									transition: "transform 160ms cubic-bezier(0.16, 1, 0.3, 1)",
+									width: overlayGridWidth,
 								}}
 							>
-								{overlayPattern.map((q: number, i: number) => {
-									const cellKey = CELL_IDS[i] || `fallback-cell-${i}`;
-									const safeQ = Number.isFinite(q)
-										? Math.max(0, Math.min(3, q))
-										: 0;
-									const label = normalizedWords[safeQ] ?? "";
-									return (
-										<div key={cellKey} className="relative w-full h-full">
-											<div className="absolute left-1/2 bottom-[10%] -translate-x-1/2 px-2 py-1 bg-white/90 border-[3px] border-black rounded-lg hard-shadow-sm whitespace-nowrap z-10">
-												<span className="block text-[10px] sm:text-xs md:text-sm font-black tracking-wider text-black uppercase leading-none">
-													{label.toUpperCase()}
-												</span>
+								<div
+									className="grid w-full h-full"
+									style={{
+										gridTemplateColumns: `repeat(${overlayCols}, 1fr)`,
+										gridTemplateRows: `repeat(${overlayRows}, 1fr)`,
+									}}
+								>
+									{overlayPattern.map((q: number, i: number) => {
+										const cellKey = CELL_IDS[i] || `fallback-cell-${i}`;
+										const safeQ = Number.isFinite(q)
+											? Math.max(0, Math.min(3, q))
+											: 0;
+										const label = normalizedWords[safeQ] ?? "";
+
+										return (
+											<div key={cellKey} className="relative w-full h-full">
+												<div className="absolute inset-x-0 bottom-[12%] flex justify-center">
+													<div className="px-2 py-1 bg-white/90 border-[3px] border-black rounded-lg hard-shadow-sm whitespace-nowrap">
+														<span className="block text-[10px] sm:text-xs md:text-sm font-black tracking-wider text-black uppercase leading-none">
+															{label.toUpperCase()}
+														</span>
+													</div>
+												</div>
 											</div>
-										</div>
-									);
-								})}
+										);
+									})}
+								</div>
 							</div>
 						</div>
 					)}
