@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppLocale } from '../i18n/config';
-import LanguageMenu from './LanguageMenu';
+import { AppLocale } from '@/i18n/config';
+import LanguageMenu from '@shared/i18n/ui/LanguageMenu';
 import NavArrow from './NavArrow';
 import WordEditor from './WordEditor';
 import RecordingToggle from './RecordingToggle';

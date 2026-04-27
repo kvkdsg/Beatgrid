@@ -21,10 +21,11 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
-    },
+  "@app/*": ["./app/*"],
+  "@features/*": ["./features/*"],
+  "@shared/*": ["./shared/*"],
+  "@/*": ["./*"]
+},
     "allowImportingTsExtensions": true,
     "noEmit": true
   }

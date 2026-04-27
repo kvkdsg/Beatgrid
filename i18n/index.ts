@@ -140,7 +140,7 @@ function initI18n(): Promise<typeof i18n> {
       resources,
       lng: initialLocale,
       fallbackLng: FALLBACK_LOCALE,
-      supportedLngs: [...SUPPORTED_LOCALES],
+      supportedLngs:[...SUPPORTED_LOCALES],
       load: "currentOnly",
       ns: ["common"],
       defaultNS: "common",
@@ -172,6 +172,7 @@ function initI18n(): Promise<typeof i18n> {
       try {
         localStorage.setItem(APP_LANGUAGE_STORAGE_KEY, next);
       } catch {
+        /* ignora silenciosamente si falla el acceso a localStorage */
       }
     });
 

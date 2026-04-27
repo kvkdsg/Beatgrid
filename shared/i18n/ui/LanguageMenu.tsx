@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { AppLocale } from '../i18n/config';
-import { LOCALE_LABELS, LOCALE_MENU } from './locales';
+import { AppLocale } from '@/i18n/config';
+import { LOCALE_LABELS, LOCALE_MENU } from '../model/locales';
 
 interface LanguageMenuProps {
   currentLocale: AppLocale;

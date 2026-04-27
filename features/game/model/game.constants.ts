@@ -1,4 +1,4 @@
-import type { BoardState } from './types';
+import type { BoardState } from './game.types';
 
 const SONG_BPM = 92;
 export const SONG_OFFSET_SEC = 9;
@@ -38,4 +38,3 @@ const R4_PATTERN: BoardState =[0, 2, 3, 1, 1, 3, 2, 0];
 const R5_PATTERN: BoardState =[1, 3, 0, 2, 3, 0, 1, 2];
 
 export const ROUND_PATTERNS =[R1_PATTERN, R2_PATTERN, R3_PATTERN, R4_PATTERN, R5_PATTERN];
-export const BUY_ME_COFFEE_URL = "https://buy.stripe.com/4gMeV5cAi2gCdetdwAg7e00";

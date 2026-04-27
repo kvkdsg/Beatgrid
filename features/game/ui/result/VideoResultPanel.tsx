@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { BUY_ME_COFFEE_URL } from '../../../constants';
+import { BUY_ME_COFFEE_URL } from '@shared/config/constants';
 
 interface VideoResultPanelProps {
   showVideoSection: boolean;

@@ -44,17 +44,6 @@
 
     <!--__INJECT_HEAD__-->
 
-    <!-- 
-      FAVICONS
-      1. SVG: Prioridad para navegadores de escritorio (Chrome/Firefox/Edge). 
-         Permite transparencia y se ve nítido en cualquier resolución.
-      2. ICO: Fallback para navegadores muy antiguos (Safari antiguo/IE).
-      3. PNG (192px): CRÍTICO para Google Search (SEO). Google usa este para mostrar
-         el logo junto al resultado de búsqueda.
-      4. Apple Touch Icon: Para iOS home screen.
-    -->
-    
-    <!-- A. Navegadores Modernos (Tu icono transparente) -->
     <!-- NOTA: Asegúrate de copiar tu archivo .svg a /public/favicon.svg -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
@@ -99,6 +88,6 @@
   <body>
     <div id="root"></div>
     <!--__INJECT_APP_SHELL__-->
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="/app/bootstrap/index.tsx"></script>
   </body>
 </html>

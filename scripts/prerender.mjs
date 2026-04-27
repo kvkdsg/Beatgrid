@@ -7,7 +7,7 @@ import { getSeoData } from "../server/seo-content.mjs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const SUPPORTED_LOCALES = [
+const SUPPORTED_LOCALES =[
   "en",
   "es",
   "pt-BR",
@@ -200,9 +200,9 @@ function buildAppShellHtml({ lang, seoData }) {
     const safeW = escapeHtml(w);
     const safeAria = escapeHtml(`Word ${i + 1}`);
     return `
-      <div class="group relative bg-white border-4 border-black p-2 md:p-3 transition-all duration-200 shadow-4px4px0px0pxrgba(0,0,0,1) flex flex-col justify-between">
+      <div class="group relative bg-white border-4 border-black p-2 md:p-3 transition-all duration-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
         <div class="flex justify-start mb-0">
-          <span class="text-10px md:text-xs font-black text-white bg-black px-1.5 py-0.5 tracking-widest border-2 border-transparent">•</span>
+          <span class="text-[10px] md:text-xs font-black text-white bg-black px-1.5 py-0.5 tracking-widest border-2 border-transparent">•</span>
         </div>
         <input
           type="text"
@@ -220,7 +220,7 @@ function buildAppShellHtml({ lang, seoData }) {
 
   return `
 <div class="ssr-shell" id="ssr-shell" data-ssr-shell="true">
-  <div class="h-100svh min-h-100svh w-full relative overflow-hidden bg-f0f0f0 box-border">
+  <div class="h-100svh min-h-100svh w-full relative overflow-hidden bg-[#f0f0f0] box-border">
     <img
       src="/images/paper.webp"
       alt=""
@@ -251,7 +251,7 @@ function buildAppShellHtml({ lang, seoData }) {
           <button
             type="button"
             aria-label="Language selector"
-            class="relative flex items-center gap-3 bg-white border-3px border-black px-4 py-1.5 pr-10 font-black text-black uppercase text-xs md:text-sm tracking-widest cursor-pointer rounded-lg select-none transition-all duration-200 ease-out shadow-4px4px0px0pxrgba(0,0,0,1)">
+            class="relative flex items-center gap-3 bg-white border-[3px] border-black px-4 py-1.5 pr-10 font-black text-black uppercase text-xs md:text-sm tracking-widest cursor-pointer rounded-lg select-none transition-all duration-200 ease-out shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <span class="text-black">${escapeHtml(lang)}</span>
             <span class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-black">
               <svg aria-hidden="true" focusable="false" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -262,12 +262,12 @@ function buildAppShellHtml({ lang, seoData }) {
         </div>
 
         <!-- Main card -->
-        <div class="relative z-30 flex flex-col items-center gap-4 md:gap-8 text-center p-5 md:p-8 bg-white rounded-3xl border-4px md:border-6px border-black hard-shadow w-full max-w-2xl">
+        <div class="relative z-30 flex flex-col items-center gap-4 md:gap-8 text-center p-5 md:p-8 bg-white rounded-3xl border-4 md:border-[6px] border-black hard-shadow w-full max-w-2xl">
           <div class="flex items-center justify-between w-full gap-2 md:gap-4 mb-2 md:mb-0">
             <button
               type="button"
               aria-label="Previous"
-              class="group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-4px4px0px0pxrgba(0,0,0,1) flex-shrink-0 rounded-lg transition-all duration-150">
+              class="group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] shrink-0 rounded-lg transition-all duration-150">
               <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
                 class="w-5 h-5 md:w-7 md:h-7 text-black transition-transform group-hover:scale-110">
                 <path d="M19 12H5M12 19l-7-7 7-7"></path>
@@ -278,7 +278,7 @@ function buildAppShellHtml({ lang, seoData }) {
               <h1 class="text-4xl md:text-6xl font-black text-black tracking-tighter uppercase leading-none">
                 ${safeH1}
               </h1>
-              <h2 class="text-xl md:text-3xl font-black text-white bg-ff0055 px-4 py-1 tracking-widest uppercase border-4 border-black inline-block transform rotate-1">
+              <h2 class="text-xl md:text-3xl font-black text-white bg-[#ff0055] px-4 py-1 tracking-widest uppercase border-4 border-black inline-block transform rotate-1">
                 ${safeP}
               </h2>
             </div>
@@ -286,7 +286,7 @@ function buildAppShellHtml({ lang, seoData }) {
             <button
               type="button"
               aria-label="Next"
-              class="group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-4px4px0px0pxrgba(0,0,0,1) flex-shrink-0 rounded-lg transition-all duration-150">
+              class="group relative flex items-center justify-center w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] shrink-0 rounded-lg transition-all duration-150">
               <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
                 class="w-5 h-5 md:w-7 md:h-7 text-black transition-transform group-hover:scale-110 rotate-180">
                 <path d="M19 12H5M12 19l-7-7 7-7"></path>
@@ -313,9 +313,9 @@ function buildAppShellHtml({ lang, seoData }) {
           <div class="w-full flex items-center justify-between bg-gray-50 border-4 border-black p-3 md:p-4 rounded-xl">
             <div class="flex flex-col items-start text-left">
               <span class="font-black uppercase text-sm md:text-lg text-black">Recording</span>
-              <span class="text-10px md:text-xs font-bold text-gray-500 uppercase tracking-wide leading-tight">On</span>
+              <span class="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-wide leading-tight">On</span>
             </div>
-            <div class="relative w-12 md:w-16 h-7 md:h-8 rounded-full border-4 border-black bg-00ff99">
+            <div class="relative w-12 md:w-16 h-7 md:h-8 rounded-full border-4 border-black bg-[#00ff99]">
               <div class="absolute top-1/2 -translate-y-1/2 w-5 md:w-6 h-5 md:h-6 bg-white border-2 border-black rounded-full shadow-sm"
                    style="left: calc(100% - 1.5rem);"></div>
             </div>

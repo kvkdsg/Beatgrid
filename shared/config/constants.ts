@@ -1,0 +1,1 @@
+export const BUY_ME_COFFEE_URL = "https://buy.stripe.com/4gMeV5cAi2gCdetdwAg7e00";

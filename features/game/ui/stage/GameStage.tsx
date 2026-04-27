@@ -1,6 +1,6 @@
 import React, { RefObject } from 'react';
-import HUD from '../../../components/HUD';
-import CornerDecorations from '../../../components/CornerDecorations';
+import HUD from './HUD';
+import CornerDecorations from './CornerDecorations';
 
 const BASE_W = 1600;
 const BASE_H = 800;

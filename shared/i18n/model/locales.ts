@@ -1,4 +1,4 @@
-import { AppLocale } from '../i18n/config';
+import { AppLocale } from '@/i18n/config';
 
 export const LOCALE_LABELS: Record<AppLocale, string> = {
   en: "English", es: "Español", "pt-BR": "Português (Brasil)", fr: "Français", de: "Deutsch",

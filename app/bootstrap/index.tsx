@@ -1,9 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
-
-import "./index.css";
-import { i18nReady } from "./i18n";
+import { AppRouter } from "@app/router/AppRouter";
+import "@/index.css";
+import { i18nReady } from "@/i18n";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
@@ -24,36 +23,28 @@ function registerServiceWorkerDeferred(): void {
     try {
       await navigator.serviceWorker.register(swUrl, { scope: base });
     } catch {
-      // Silencioso por diseño
+      // Fail silent
     }
   };
 
   const ric = (window as unknown as { requestIdleCallback?: (cb: IdleRequestCallback, opts?: IdleRequestOptions) => number }).requestIdleCallback?.bind(window);
 
   if (typeof ric === "function") {
-    ric(
-      () => {
-        void doRegister();
-      },
-      { timeout: 8000 }
-    );
+    ric(() => { void doRegister(); }, { timeout: 8000 });
   } else {
-    setTimeout(() => {
-      void doRegister();
-    }, 5000);
+    setTimeout(() => { void doRegister(); }, 5000);
   }
 }
 
 function renderApp() {
   root.render(
     <React.StrictMode>
-      <App />
+      <AppRouter />
     </React.StrictMode>
   );
 
   requestAnimationFrame(() => {
     document.documentElement.classList.add("hydrated");
-    void 0;
   });
 
   registerServiceWorkerDeferred();

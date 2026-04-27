@@ -7,8 +7,8 @@ import {
   CELL_LABEL_DURATION_MS,
   CELL_LABEL_FADE_IN_MS,
   CELL_LABEL_FADE_OUT_MS,
-} from '../../constants';
-import { GameSettings, GameTimeline, RoundConfig } from '../../types';
+} from '../../model/game.constants';
+import { GameSettings, GameTimeline, RoundConfig } from '../../model/game.types';
 
 const EMPTY_PATTERN: readonly number[] = Object.freeze([]);
 
