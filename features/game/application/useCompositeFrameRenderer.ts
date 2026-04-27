@@ -214,9 +214,12 @@ export function useCompositeFrameRenderer({
 				ctx.stroke();
 				let cursorX = badgeX + padX;
 				const centerY = badgeY + badgeH / 2;
+				const textY = centerY;
+				ctx.textAlign = "left";
+				ctx.textBaseline = "middle";
 				ctx.font = labelFont;
 				ctx.fillStyle = "#6b7280";
-				ctx.fillText(labelText, cursorX, centerY);
+				ctx.fillText(labelText, cursorX, textY);
 				cursorX += labelM.width + gap1;
 				ctx.font = valFont;
 				const gradient = ctx.createLinearGradient(
@@ -228,11 +231,11 @@ export function useCompositeFrameRenderer({
 				gradient.addColorStop(0, "#7c3aed");
 				gradient.addColorStop(1, "#3b82f6");
 				ctx.fillStyle = gradient;
-				ctx.fillText(valText, cursorX, centerY + 2);
+				ctx.fillText(valText, cursorX, textY);
 				cursorX += valM.width + gap2;
 				ctx.font = totalFont;
 				ctx.fillStyle = "#9ca3af";
-				ctx.fillText(totalText, cursorX, centerY + 2);
+				ctx.fillText(totalText, cursorX, textY);
 				ctx.restore();
 			}
 
