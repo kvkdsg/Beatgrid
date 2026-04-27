@@ -1,18 +1,44 @@
-.gcloudignore
-.git
-.gitignore
-node_modules
-.next
-dist
-build
-coverage
-.tmp
-.cache
-**/*.log
-**/*.tgz
-**/*.zip
-**/*.tar
-Dockerfile.local
-.md
-.yaml
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Dist / Build
+dist/
+dist-ssr/
+
+# Vite Cache
+.vite/
+
+# Environment variables
+.env
+.env*.local
+*.local
 .env.local
+
+# Custom ignores
+deploy.mc
+deploy.md
+coverage/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Evitar subir la carpeta git
+.git/

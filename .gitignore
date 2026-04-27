@@ -9,16 +9,14 @@ lerna-debug.log*
 
 # Dependencies
 node_modules/
-dist/
-# Next.js / Vercel (¡IMPORTANTE!)
-.next/
-out/
-build/
-.vercel/
+.pnpm-store/
 
 # Dist / Build
-dist
-dist-ssr
+dist/
+dist-ssr/
+
+# Vite Cache
+.vite/
 
 # Environment variables
 .env
