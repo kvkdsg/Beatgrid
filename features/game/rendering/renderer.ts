@@ -1,8 +1,8 @@
 import {
   QUADRANT_SIZE,
   SPRITE_RESOLUTION,
-} from '../../constants';
-import { BoardState } from '../../types';
+} from '../model/game.constants';
+import { BoardState } from '../model/game.types';
 
 export type SpriteSource = ImageBitmap | HTMLCanvasElement | HTMLImageElement;
 

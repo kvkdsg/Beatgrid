@@ -1,4 +1,4 @@
-import { RecordingConfig, RecordingResult } from '../types';
+import { RecordingConfig, RecordingResult } from './recording.types';
 
 export class CanvasRecordingService {
   private mediaRecorder: MediaRecorder | null = null;

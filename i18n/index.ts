@@ -110,8 +110,12 @@ function resolveInitialLocale(): AppLocale {
     const fromQuery = toSupportedLocale(url.searchParams.get("lang"));
     if (fromQuery) return fromQuery;
 
-    const fromStorage = toSupportedLocale(window.localStorage.getItem(APP_LANGUAGE_STORAGE_KEY));
-    if (fromStorage) return fromStorage;
+    try {
+      const fromStorage = toSupportedLocale(window.localStorage.getItem(APP_LANGUAGE_STORAGE_KEY));
+      if (fromStorage) return fromStorage;
+    } catch {
+      // Ignoramos la excepción silenciosamente, caerá en el locale por defecto
+    }
   }
 
   if (typeof navigator !== "undefined") {
@@ -123,7 +127,7 @@ function resolveInitialLocale(): AppLocale {
 
 let initPromise: Promise<typeof i18n> | null = null;
 
-export function initI18n(): Promise<typeof i18n> {
+function initI18n(): Promise<typeof i18n> {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
@@ -136,13 +140,13 @@ export function initI18n(): Promise<typeof i18n> {
       resources,
       lng: initialLocale,
       fallbackLng: FALLBACK_LOCALE,
-      supportedLngs: [...SUPPORTED_LOCALES],
+      supportedLngs:[...SUPPORTED_LOCALES],
       load: "currentOnly",
       ns: ["common"],
       defaultNS: "common",
 
       detection: {
-        order: ["path", "htmlTag", "localStorage", "navigator"],
+        order:["path", "htmlTag", "localStorage", "navigator"],
         lookupFromPathIndex: 0,
         caches: ["localStorage"],
         htmlTag: document.documentElement,
@@ -165,7 +169,11 @@ export function initI18n(): Promise<typeof i18n> {
       document.documentElement.lang = next;
       document.documentElement.dir = isRtlLocale(next) ? "rtl" : "ltr";
 
-      localStorage.setItem(APP_LANGUAGE_STORAGE_KEY, next);
+      try {
+        localStorage.setItem(APP_LANGUAGE_STORAGE_KEY, next);
+      } catch {
+        /* ignora silenciosamente si falla el acceso a localStorage */
+      }
     });
 
     return i18n;

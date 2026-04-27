@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createTimeline, getGameStateAtTime } from './engine';
-import { GameSettings } from '../../types';
+import { GameSettings } from '../../model/game.types';
 
 describe('Game Engine', () => {
   const mockSettings: GameSettings = {

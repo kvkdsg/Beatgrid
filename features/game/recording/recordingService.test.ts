@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CanvasRecordingService } from './recordingService';
-import { RecordingConfig } from '../types';
+import { RecordingConfig } from './recording.types';
 
 describe('Recording Service', () => {
   let canvas: HTMLCanvasElement;

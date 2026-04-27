@@ -15,8 +15,11 @@ export default defineConfig({
     include: ["**/*.test.{ts,tsx,js,mjs}"],
     exclude:["node_modules", "dist"],
     alias: {
-      "@": path.resolve(__dirname, "."),
-    },
+  "@app": path.resolve(__dirname, "app"),
+  "@features": path.resolve(__dirname, "features"),
+  "@shared": path.resolve(__dirname, "shared"),
+  "@": path.resolve(__dirname, "."),
+},
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
