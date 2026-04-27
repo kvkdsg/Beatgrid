@@ -9,7 +9,6 @@ import {
 	DEFAULT_BPM,
 	GLOBAL_AUDIO_LATENCY_MS,
 	RECORDING_TRIM_END_MS,
-	RECORDING_VIDEO_LAG_MS,
 	SONG_OFFSET_SEC,
 	SYNC_AUDIO_EPSILON_MS,
 	SYNC_NUDGE_FACTOR,
@@ -234,8 +233,13 @@ export function useGameLoop({
 			}
 
 			const visualTimeMs = Math.max(0, visualRawTime + GLOBAL_AUDIO_LATENCY_MS);
-			const recordingBaseTimeMs = Math.max(0, visualRawTime);
 			const offsetMs = SONG_OFFSET_SEC * 1000;
+			const gameTimeMs = Math.max(0, visualTimeMs - offsetMs);
+			const beatProgress =
+				timelineRef.current.msPerBeat > 0
+					? (gameTimeMs % timelineRef.current.msPerBeat) /
+						timelineRef.current.msPerBeat
+					: 0;
 
 			applyCornerDance(visualTimeMs);
 
@@ -248,10 +252,8 @@ export function useGameLoop({
 			if (!rendererRef.current) return;
 
 			if (isRecordingActiveRef.current) {
-				const recordingTimeMs = recordingBaseTimeMs + RECORDING_VIDEO_LAG_MS;
-
-				if (recordingTimeMs < offsetMs) {
-					const timeRemaining = offsetMs - recordingTimeMs;
+				if (visualTimeMs < offsetMs) {
+					const timeRemaining = offsetMs - visualTimeMs;
 					const alpha =
 						timeRemaining <= CELL_LABEL_DURATION_MS
 							? CELL_LABEL_FADE_IN_MS > 0
@@ -276,7 +278,7 @@ export function useGameLoop({
 						-1,
 					);
 
-					renderCompositeFrame(recordingTimeMs, {
+					renderCompositeFrame(visualTimeMs, {
 						forceIntro: true,
 						introTextOverride:
 							Math.ceil(timeRemaining / 1000 / (60 / DEFAULT_BPM)) > 4
@@ -296,7 +298,7 @@ export function useGameLoop({
 					});
 				} else {
 					const recStateLoc = getGameStateAtTime(
-						recordingTimeMs - offsetMs,
+						gameTimeMs,
 						timelineRef.current,
 					);
 
@@ -306,12 +308,11 @@ export function useGameLoop({
 						recStateLoc.currentPattern,
 						recStateLoc.prevPattern,
 						recStateLoc.interpolation,
-						(recordingTimeMs % timelineRef.current.msPerBeat) /
-							timelineRef.current.msPerBeat,
+						beatProgress,
 						recStateLoc.activeCellIndex,
 					);
 
-					renderCompositeFrame(recordingTimeMs, {
+					renderCompositeFrame(visualTimeMs, {
 						gameStateOverride: recStateLoc,
 					});
 				}
@@ -376,8 +377,6 @@ export function useGameLoop({
 				return;
 			}
 
-			const gameTimeMs = visualTimeMs - offsetMs;
-
 			engineStateRef.current = getGameStateAtTime(
 				gameTimeMs,
 				timelineRef.current,
@@ -437,7 +436,7 @@ export function useGameLoop({
 						-1,
 					);
 
-					renderCompositeFrame(recordingBaseTimeMs + RECORDING_VIDEO_LAG_MS, {
+					renderCompositeFrame(visualTimeMs, {
 						gameStateOverride: state,
 					});
 
@@ -486,7 +485,7 @@ export function useGameLoop({
 						-1,
 					);
 
-					renderCompositeFrame(recordingBaseTimeMs + RECORDING_VIDEO_LAG_MS, {
+					renderCompositeFrame(visualTimeMs, {
 						gameStateOverride: state,
 					});
 
@@ -526,8 +525,7 @@ export function useGameLoop({
 				state.currentPattern,
 				state.prevPattern,
 				state.interpolation,
-				(gameTimeMs % timelineRef.current.msPerBeat) /
-					timelineRef.current.msPerBeat,
+				beatProgress,
 				state.activeCellIndex,
 			);
 
